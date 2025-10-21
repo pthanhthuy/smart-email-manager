@@ -1,0 +1,41 @@
+# OpenAI API Configuration
+OPENAI_API_KEY=sk-your-openai-api-key-here
+OPEN_API_KEY_FOR_TEXT_EMBEDDING=sk-your-embedding-api-key-here
+OPENAI_BASE_URL=https://api.openai.com/v1
+OPENAI_MODEL=gpt-4-turbo-preview
+EMBEDDING_MODEL=text-embedding-3-small
+
+# ChromaDB Cloud Configuration (Vector Database)
+# Get free account at: https://trychroma.com/
+CHROMA_CLOUD_URL=https://api.trychroma.com
+CHROMA_API_KEY=your-chroma-api-key-here
+CHROMA_TENANT=default-tenant
+CHROMA_DATABASE=default_database
+CHROMA_COLLECTION_NAME=email-embeddings
+
+# Optional: Use local ChromaDB instead (set CHROMA_USE_LOCAL=true)
+CHROMA_USE_LOCAL=false
+CHROMA_PATH=./chroma_data
+
+# MCP Server Configuration
+MCP_PORT=3000
+NODE_ENV=development
+
+# Email Configuration
+MAX_EMAILS=100
+SYNC_INTERVAL=300000
+
+# Vector Search Configuration
+VECTOR_DIMENSIONS=1536
+SIMILARITY_THRESHOLD=0.7
+
+# Response Generation
+DEFAULT_TONE=professional
+MAX_RESPONSE_TOKENS=500
+
+# Notes:
+# 1. Copy this file to .env
+# 2. Replace 'your-openai-api-key-here' with your actual OpenAI API key
+# 3. credentials.json for Gmail API should be placed in mcp-server/
+# 4. Never commit .env or credentials.json to git!
+

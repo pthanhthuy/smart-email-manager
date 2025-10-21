@@ -1,0 +1,54 @@
+# Environment variables
+.env
+.env.local
+
+# Gmail OAuth tokens
+token.json
+credentials.json
+
+# OpenAI and API keys
+*.key
+
+# Dependencies
+node_modules/
+mcp-server/node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build outputs
+dist/
+build/
+*.zip
+
+# Vector database files
+*.index
+*.ann
+embeddings.json
+vector-store/
+
+# Test files
+test-data/
+*.test.js
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+
+
+

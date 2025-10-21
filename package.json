@@ -1,0 +1,32 @@
+{
+  "name": "smart-email-manager",
+  "version": "1.0.0",
+  "description": "AI-powered email assistant with semantic search and smart response generation",
+  "main": "server/index.js",
+  "scripts": {
+    "server": "cd server && node index.js",
+    "dev": "cd server && nodemon index.js",
+    "setup": "npm install && cd server && npm install",
+    "test": "node test-server.js"
+  },
+  "keywords": [
+    "email",
+    "ai",
+    "gmail",
+    "semantic-search",
+    "chrome-extension",
+    "openai"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  }
+}
+
+
+
+
