@@ -13,7 +13,7 @@ const OpenAI = require('openai');
 // Initialize OpenAI client for embeddings
 // Uses custom key and base URL if provided
 const openai = new OpenAI({
-  apiKey: process.env.OPEN_API_KEY_FOR_TEXT_EMBEDDING || process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPEN_API_KEY_FOR_TEXT_EMBEDDING,
   baseURL: process.env.OPENAI_BASE_URL
 });
 

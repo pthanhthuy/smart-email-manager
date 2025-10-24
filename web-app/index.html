@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Email Manager</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>📧 Smart Email Manager</h1>
+            <p>AI-powered semantic search and smart response generation</p>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Search Panel -->
+            <div class="search-panel">
+                <div class="search-section">
+                    <div class="sync-section">
+                        <button id="syncBtn" class="sync-btn">
+                            <span class="sync-icon">🔄</span>
+                            <span class="sync-text">Sync Emails</span>
+                        </button>
+                        <div class="sync-status">
+                            <span id="syncStatus" class="sync-status-text">Ready to sync</span>
+                        </div>
+                    </div>
+                    
+                    <h3>🔍 Semantic Search</h3>
+                    <div class="search-box">
+                        <input type="text" id="searchInput" class="search-input" placeholder="Search emails by meaning... (e.g., 'budget meetings', 'urgent requests')">
+                        <button id="searchBtn" class="search-btn">🔎</button>
+                    </div>
+                </div>
+
+                <div class="search-section">
+                    <h3>🎨 Response Tone</h3>
+                    <div class="tone-selector">
+                        <button class="tone-btn active" data-tone="professional">Professional</button>
+                        <button class="tone-btn" data-tone="casual">Casual</button>
+                        <button class="tone-btn" data-tone="brief">Brief</button>
+                        <button class="tone-btn" data-tone="friendly">Friendly</button>
+                        <button class="tone-btn" data-tone="formal">Formal</button>
+                    </div>
+                </div>
+
+                <div class="search-section">
+                    <h3>💬 Response Instruction</h3>
+                    <div class="instruction-box">
+                        <input type="text" id="responseInstruction" class="instruction-input" placeholder="What do you want to communicate? (e.g., 'I can attend the meeting', 'I need more time')">
+                        <div class="quick-instructions">
+                            <button class="quick-btn" data-instruction="I can attend">✅ I can attend</button>
+                            <button class="quick-btn" data-instruction="I need more time">⏰ I need more time</button>
+                            <button class="quick-btn" data-instruction="I'll send the report">📄 I'll send the report</button>
+                            <button class="quick-btn" data-instruction="I'm interested">👍 I'm interested</button>
+                        </div>
+                        <div class="instruction-examples">
+                            <small>💡 Click a quick button above or type your own instruction</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="search-section">
+                    <h3>📚 Response History</h3>
+                    <div class="history-controls">
+                        <button id="loadHistoryBtn" class="history-btn">📖 Load History</button>
+                        <button id="clearHistoryBtn" class="history-btn danger">🗑️ Clear History</button>
+                    </div>
+                    <div id="historyContainer" class="history-container" style="display: none;">
+                        <div id="historyList" class="history-list"></div>
+                    </div>
+                </div>
+
+                <div class="search-section">
+                    <h3>🔍 Tone Analysis</h3>
+                    <div class="tone-analysis-box">
+                        <textarea id="toneAnalysisInput" class="tone-analysis-input" placeholder="Paste text here to analyze its tone..."></textarea>
+                        <button id="analyzeToneBtn" class="analyze-tone-btn">🔍 Analyze Tone</button>
+                        <div id="toneAnalysisResult" class="tone-analysis-result" style="display: none;"></div>
+                    </div>
+                </div>
+
+                <div class="feature-highlight">
+                    <h4>🤖 AI Features</h4>
+                    <p>• Semantic search finds emails by meaning, not just keywords<br>
+                    • AI generates smart response suggestions<br>
+                    • Tone adjustment for perfect communication<br>
+                    • Response history and learning</p>
+                </div>
+
+                <div class="stats-panel">
+                    <h4 style="margin-bottom: 15px; color: #1e293b;">📊 Your Stats</h4>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-number" id="emailsIndexed">0</div>
+                            <div class="stat-label">Emails Indexed</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="aiResponses">0</div>
+                            <div class="stat-label">AI Responses</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-number" id="timeSaved">0h</div>
+                            <div class="stat-label">Time Saved</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Panel -->
+            <div class="results-panel">
+                <div class="results-header">
+                    <h3 style="margin-bottom: 20px; color: #1e293b;">📬 Search Results</h3>
+                    <div id="resultsCount" class="results-count" style="display: none;">
+                        <span id="resultsNumber">0</span> emails found
+                    </div>
+                </div>
+                
+
+                <!-- Empty State -->
+                <div id="emptyState" class="empty-state" style="display: none;">
+                    <div class="empty-state-icon">📭</div>
+                    <h3>No emails found</h3>
+                    <p>Try a different search term or check your email sync status.</p>
+                </div>
+
+                <!-- Email Results Container -->
+                <div id="emailResults" class="email-results">
+                    <!-- Email items will be dynamically inserted here -->
+                </div>
+
+                <!-- AI Response Panel -->
+                <div id="aiResponsePanel" class="ai-response-panel" style="display: none;">
+                    <div class="ai-response-header">
+                        <span>🤖</span>
+                        <h4>AI Response Suggestions</h4>
+                    </div>
+                    
+                    <div id="responseOptions" class="response-options">
+                        <!-- Response options will be dynamically inserted here -->
+                    </div>
+                    
+                    <div class="response-actions">
+                        <button id="saveDraftBtn" class="action-btn btn-success">💾 Save Draft</button>
+                        <button id="editResponseBtn" class="action-btn btn-warning">✏️ Edit Response</button>
+                        <button id="generateNewBtn" class="action-btn btn-secondary">🔄 Generate New</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading State - Full Screen Overlay -->
+    <div id="loadingState" class="loading" style="display: none;">
+        <div class="spinner"></div>
+        <span>Processing...</span>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
