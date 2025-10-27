@@ -2,16 +2,31 @@
 
 class SmartEmailManager {
     constructor() {
-        this.apiBaseUrl = 'http://localhost:3001';
+        this.apiBaseUrl = 'http://localhost:3000';
         this.currentTone = 'professional';
         this.selectedEmail = null;
         this.selectedResponse = null;
+        
+        // TTS state using Web Speech API
+        this.speechSynthesis = window.speechSynthesis;
+        this.currentUtterance = null;
+        this.currentSummary = null;
+        this.currentEmailId = null;
+        this.ttsSettings = {
+            rate: 1.0,
+            pitch: 1.0,
+            volume: 1.0,
+            voice: null,
+            isPlaying: false,
+            isPaused: false
+        };
         
         this.initializeApp();
     }
 
     initializeApp() {
         this.setupEventListeners();
+        this.testServerConnection();
         this.loadUserStats();
         this.showWelcomeMessage();
     }
@@ -64,6 +79,12 @@ class SmartEmailManager {
 
         // Tone analysis functionality
         document.getElementById('analyzeToneBtn').addEventListener('click', () => this.analyzeTone());
+
+        // Keyboard shortcuts for TTS
+        document.addEventListener('keydown', (e) => this.handleTTSKeyboardShortcuts(e));
+
+        // TTS test functionality
+        document.getElementById('testTTSBtn').addEventListener('click', () => this.testTTS());
     }
 
     async performSearch() {
@@ -95,7 +116,16 @@ class SmartEmailManager {
             
         } catch (error) {
             console.error('Search error:', error);
-            this.showMessage(`Search failed: ${error.message}`, 'error');
+            
+            // Provide more specific error messages
+            let errorMessage = 'Search failed: ';
+            if (error.message.includes('Failed to fetch')) {
+                errorMessage += 'Cannot connect to server. Please make sure the server is running on port 3000.';
+            } else {
+                errorMessage += error.message;
+            }
+            
+            this.showMessage(errorMessage, 'error');
             this.showEmptyState();
         } finally {
             this.showLoading(false);
@@ -138,6 +168,15 @@ class SmartEmailManager {
                     this.generateAIResponse(email);
                 });
             });
+
+            // Add event listeners to summarize buttons
+            document.querySelectorAll('.summarize-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const emailId = e.target.dataset.emailId;
+                    const email = emails.find(e => e.id === emailId);
+                    this.summarizeEmail(email);
+                });
+            });
         } catch (error) {
             console.error('Error displaying results:', error);
             this.showMessage('Error displaying results: ' + error.message, 'error');
@@ -160,6 +199,9 @@ class SmartEmailManager {
                     <div class="email-actions">
                         <button class="action-btn btn-primary generate-response-btn" data-email-id="${email.id}">
                             🤖 Generate Response
+                        </button>
+                        <button class="action-btn btn-info summarize-btn" data-email-id="${email.id}">
+                            📝 Summarize
                         </button>
                         <button class="action-btn btn-secondary" onclick="viewFullEmail('${email.id}')">
                             📖 View Full
@@ -221,6 +263,39 @@ class SmartEmailManager {
             this.showMessage(`AI response failed: ${error.message}`, 'error');
         } finally {
             this.showLoading(false);
+        }
+    }
+
+    async summarizeEmail(email) {
+        try {
+            // Show loading state on the specific email card
+            this.showEmailSummaryLoading(email.id, true);
+
+            const response = await fetch(`${this.apiBaseUrl}/summarize-email`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    emailId: email.id,
+                    emailData: email
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Email summarization failed: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            console.log('Summary response:', data);
+            console.log('Summary text:', data.summary);
+            this.displayEmailSummary(email.id, data.summary);
+            
+        } catch (error) {
+            console.error('Email summarization error:', error);
+            this.showEmailSummaryError(email.id, `Summarization failed: ${error.message}`);
+        } finally {
+            this.showEmailSummaryLoading(email.id, false);
         }
     }
 
@@ -394,6 +469,20 @@ class SmartEmailManager {
 
     showWelcomeMessage() {
         this.showMessage('Welcome! Try searching for emails like "budget meetings" or "urgent requests"', 'success');
+    }
+
+    async testServerConnection() {
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/health`);
+            if (response.ok) {
+                console.log('✅ Server connection successful');
+            } else {
+                console.warn('⚠️ Server responded with error:', response.status);
+            }
+        } catch (error) {
+            console.error('❌ Server connection failed:', error.message);
+            this.showMessage('Warning: Cannot connect to server. Please make sure the server is running on port 3000.', 'error');
+        }
     }
 
     showResultsCount(count) {
@@ -665,11 +754,287 @@ class SmartEmailManager {
         resultContainer.innerHTML = htmlContent;
         resultContainer.style.display = 'block';
     }
+
+    // Email Summary Helper Methods
+    showEmailSummaryLoading(emailId, show) {
+        const emailItem = document.querySelector(`[data-email-id="${emailId}"]`).closest('.email-item');
+        let summaryContainer = emailItem.querySelector('.email-summary');
+        
+        if (!summaryContainer) {
+            summaryContainer = document.createElement('div');
+            summaryContainer.className = 'email-summary';
+            emailItem.appendChild(summaryContainer);
+        }
+
+        if (show) {
+            summaryContainer.innerHTML = `
+                <div class="summary-loading">
+                    <span>⏳</span>
+                    <span>Generating summary...</span>
+                </div>
+            `;
+            summaryContainer.classList.add('show');
+        } else {
+            summaryContainer.classList.remove('show');
+        }
+    }
+
+    async displayEmailSummary(emailId, summary) {
+        console.log('Displaying summary for email:', emailId);
+        console.log('Summary content:', summary);
+        
+        const emailItem = document.querySelector(`[data-email-id="${emailId}"]`).closest('.email-item');
+        console.log('Email item found:', emailItem);
+        
+        let summaryContainer = emailItem.querySelector('.email-summary');
+        
+        if (!summaryContainer) {
+            summaryContainer = document.createElement('div');
+            summaryContainer.className = 'email-summary';
+            emailItem.appendChild(summaryContainer);
+            console.log('Created new summary container');
+        }
+
+        // Display the summary text with TTS button
+        summaryContainer.innerHTML = `
+            <div class="summary-content">
+                <div class="summary-header">
+                    <span class="summary-icon">📝</span>
+                    <span class="summary-title">Email Summary</span>
+                    <button class="tts-read-btn" onclick="smartEmailManager.readSummary('${emailId}')" title="Read Summary">
+                        🔊 Read Summary
+                    </button>
+                </div>
+                <div class="summary-text">${summary}</div>
+            </div>
+        `;
+        
+        // Ensure the summary is visible with multiple approaches
+        summaryContainer.classList.add('show');
+        summaryContainer.style.display = 'block';
+        summaryContainer.style.visibility = 'visible';
+        summaryContainer.style.opacity = '1';
+        
+        console.log('Summary displayed and shown');
+        console.log('Summary container classes:', summaryContainer.classList.toString());
+        console.log('Summary container style display:', summaryContainer.style.display);
+        
+        // Force a reflow to ensure the display change takes effect
+        summaryContainer.offsetHeight;
+        
+        // Double-check visibility after a short delay
+        setTimeout(() => {
+            if (!summaryContainer.classList.contains('show')) {
+                summaryContainer.classList.add('show');
+            }
+            if (summaryContainer.style.display === 'none') {
+                summaryContainer.style.display = 'block';
+            }
+            console.log('Post-timeout check - classes:', summaryContainer.classList.toString());
+            console.log('Post-timeout check - display:', summaryContainer.style.display);
+        }, 100);
+
+        // Store the summary for TTS
+        this.currentSummary = summary;
+        this.currentEmailId = emailId;
+        
+        // Force show all email summaries as a fallback
+        this.forceShowAllSummaries();
+    }
+
+    // Force show all email summaries
+    forceShowAllSummaries() {
+        const allSummaries = document.querySelectorAll('.email-summary');
+        allSummaries.forEach(summary => {
+            summary.classList.add('show');
+            summary.style.display = 'block';
+            summary.style.visibility = 'visible';
+            summary.style.opacity = '1';
+        });
+        console.log(`Forced visibility for ${allSummaries.length} email summaries`);
+    }
+
+    // Simple Web Speech API TTS method
+    readSummary(emailId) {
+        if (!this.currentSummary) {
+            this.showMessage('No summary available for TTS', 'error');
+            return;
+        }
+
+        // Stop any current speech
+        this.speechSynthesis.cancel();
+
+        // Create new utterance
+        this.currentUtterance = new SpeechSynthesisUtterance(this.currentSummary);
+        
+        // Configure speech settings
+        this.currentUtterance.rate = this.ttsSettings.rate;
+        this.currentUtterance.pitch = this.ttsSettings.pitch;
+        this.currentUtterance.volume = this.ttsSettings.volume;
+        
+        // Set voice if available
+        if (this.ttsSettings.voice) {
+            this.currentUtterance.voice = this.ttsSettings.voice;
+        }
+
+        // Event handlers
+        this.currentUtterance.onstart = () => {
+            this.ttsSettings.isPlaying = true;
+            this.updateReadButton(emailId, '⏹️ Stop Reading', 'stop');
+        };
+
+        this.currentUtterance.onend = () => {
+            this.ttsSettings.isPlaying = false;
+            this.updateReadButton(emailId, '🔊 Read Summary', 'read');
+        };
+
+        this.currentUtterance.onerror = (error) => {
+            console.error('TTS error:', error);
+            this.showMessage('TTS playback failed', 'error');
+            this.ttsSettings.isPlaying = false;
+            this.updateReadButton(emailId, '🔊 Read Summary', 'read');
+        };
+
+        // Start speaking
+        this.speechSynthesis.speak(this.currentUtterance);
+    }
+
+    stopReading() {
+        this.speechSynthesis.cancel();
+        this.ttsSettings.isPlaying = false;
+        
+        // Update all read buttons
+        document.querySelectorAll('.tts-read-btn').forEach(btn => {
+            btn.innerHTML = '🔊 Read Summary';
+            btn.onclick = (e) => {
+                const emailId = e.target.getAttribute('data-email-id');
+                this.readSummary(emailId);
+            };
+        });
+    }
+
+    updateReadButton(emailId, text, action) {
+        const emailItem = document.querySelector(`[data-email-id="${emailId}"]`).closest('.email-item');
+        const readBtn = emailItem.querySelector('.tts-read-btn');
+        
+        if (readBtn) {
+            readBtn.innerHTML = text;
+            readBtn.setAttribute('data-email-id', emailId);
+            
+            if (action === 'stop') {
+                readBtn.onclick = () => this.stopReading();
+            } else {
+                readBtn.onclick = () => this.readSummary(emailId);
+            }
+        }
+    }
+
+    showEmailSummaryError(emailId, errorMessage) {
+        const emailItem = document.querySelector(`[data-email-id="${emailId}"]`).closest('.email-item');
+        let summaryContainer = emailItem.querySelector('.email-summary');
+        
+        if (!summaryContainer) {
+            summaryContainer = document.createElement('div');
+            summaryContainer.className = 'email-summary';
+            emailItem.appendChild(summaryContainer);
+        }
+
+        summaryContainer.innerHTML = `
+            <div class="summary-error">
+                <span>❌</span>
+                <span>${errorMessage}</span>
+            </div>
+        `;
+        summaryContainer.classList.add('show');
+    }
+
+
+    // TTS Test functionality
+    testTTS() {
+        const testResult = document.getElementById('testTTSResult');
+        testResult.style.display = 'block';
+        this.showMessage('TTS test panel shown. Click "Read Test" to test TTS functionality.', 'success');
+    }
+
+    readTestSummary() {
+        const testText = "This is a test of the text-to-speech functionality. If you can hear this, TTS is working correctly!";
+        
+        // Stop any current speech
+        this.speechSynthesis.cancel();
+
+        // Create new utterance
+        this.currentUtterance = new SpeechSynthesisUtterance(testText);
+        
+        // Configure speech settings
+        this.currentUtterance.rate = 1.0;
+        this.currentUtterance.pitch = 1.0;
+        this.currentUtterance.volume = 1.0;
+
+        // Event handlers
+        this.currentUtterance.onstart = () => {
+            this.ttsSettings.isPlaying = true;
+            this.showMessage('TTS test started - you should hear speech now!', 'success');
+        };
+
+        this.currentUtterance.onend = () => {
+            this.ttsSettings.isPlaying = false;
+            this.showMessage('TTS test completed!', 'success');
+        };
+
+        this.currentUtterance.onerror = (error) => {
+            console.error('TTS test error:', error);
+            this.showMessage('TTS test failed: ' + error.message, 'error');
+            this.ttsSettings.isPlaying = false;
+        };
+
+        // Start speaking
+        this.speechSynthesis.speak(this.currentUtterance);
+    }
+
+    // Keyboard shortcuts for TTS controls
+    handleTTSKeyboardShortcuts(e) {
+        // Only handle shortcuts when not typing in input fields
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+            return;
+        }
+
+        switch(e.key) {
+            case ' ': // Spacebar - Play/Pause
+                e.preventDefault();
+                if (this.ttsSettings.isPlaying) {
+                    this.stopReading();
+                } else if (this.currentSummary) {
+                    this.readSummary(this.currentEmailId);
+                }
+                break;
+            case 's': // S key - Stop
+                e.preventDefault();
+                this.stopReading();
+                break;
+            case 'p': // P key - Play
+                e.preventDefault();
+                if (this.currentSummary) {
+                    this.readSummary(this.currentEmailId);
+                }
+                break;
+            case 'Escape': // Escape - Stop
+                e.preventDefault();
+                this.stopReading();
+                break;
+        }
+    }
 }
 
 // Initialize the application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     window.smartEmailManager = new SmartEmailManager();
+    
+    // Add global function to force show summaries (for debugging)
+    window.forceShowSummaries = () => {
+        if (window.smartEmailManager) {
+            window.smartEmailManager.forceShowAllSummaries();
+        }
+    };
 });
 
 // Utility function for viewing full email (called from HTML)

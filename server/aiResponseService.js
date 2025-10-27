@@ -239,6 +239,101 @@ OUTPUT FORMAT (JSON):
     console.log('🧪 Testing AI service with sample email...');
     return await this.generateSmartReplies(sampleEmail, userInstruction);
   }
+
+  /**
+   * Generate a comprehensive summary of an email
+   * @param {Object} emailData - The email to summarize
+   * @param {Object} options - Configuration options
+   * @returns {Object} AI-generated email summary
+   */
+  async generateEmailSummary(emailData, options = {}) {
+    try {
+      console.log('\n' + '='.repeat(60));
+      console.log('📝 EMAIL SUMMARIZATION');
+      console.log('='.repeat(60));
+      console.log(`📧 Email: ${emailData.subject}`);
+      console.log(`📧 From: ${emailData.from}`);
+      console.log('='.repeat(60) + '\n');
+
+      // Build the summarization prompt
+      const prompt = this.buildEmailSummaryPrompt(emailData, options);
+
+      // Call OpenAI API
+      const response = await this.openai.chat.completions.create({
+        model: options.model || 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an expert email summarizer. Create clear, conversational summaries that are easy to understand and speak naturally. Focus on the main content and key information. Write in a way that flows well when read aloud, using simple language and natural sentence structure.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.2,
+        max_tokens: 250
+      });
+
+      const summary = response.choices[0].message.content.trim();
+
+      console.log('✅ Email summary generated successfully!');
+      console.log(`📊 Tokens used: ${response.usage.total_tokens}`);
+      console.log(`💰 Estimated cost: $${(response.usage.total_tokens * 0.00015).toFixed(4)}\n`);
+
+      const metadata = {
+        model: options.model || 'gpt-4o-mini',
+        tokensUsed: response.usage.total_tokens,
+        cost: (response.usage.total_tokens * 0.00015).toFixed(4),
+        processingTime: Date.now()
+      };
+
+      return {
+        success: true,
+        summary,
+        metadata,
+        emailId: emailData.id,
+        emailSubject: emailData.subject
+      };
+
+    } catch (error) {
+      console.error('❌ Email summarization error:', error.message);
+      throw new Error(`Email summarization failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Build the email summarization prompt
+   */
+  buildEmailSummaryPrompt(emailData, options) {
+    const emailContent = emailData.content || emailData.snippet || emailData.body || '';
+    const maxLength = options.maxLength || 2000;
+    const truncatedContent = emailContent.length > maxLength 
+      ? emailContent.substring(0, maxLength) + '...' 
+      : emailContent;
+
+    return `
+Please provide a clear, concise summary of this email that focuses on the main content and is easy to understand:
+
+**Email Details:**
+- From: ${emailData.from || 'Unknown'}
+- Subject: ${emailData.subject || 'No Subject'}
+- Date: ${emailData.date || 'Unknown'}
+
+**Email Content:**
+${truncatedContent}
+
+**Summary Format:**
+Create a simple, conversational summary that includes:
+
+1. **Main Message**: What is the primary purpose or main point of this email?
+2. **Key Information**: What are the most important details the recipient needs to know?
+3. **Action Required**: Is there anything the recipient needs to do or respond to?
+4. **Important Details**: Any dates, times, locations, or specific information mentioned?
+
+Write the summary in a natural, easy-to-understand way that flows well when spoken aloud. Keep it concise but comprehensive. Use simple language and clear structure.
+    `.trim();
+  }
 }
 
 module.exports = AIResponseService;

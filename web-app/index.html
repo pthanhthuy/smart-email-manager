@@ -83,12 +83,24 @@
                     </div>
                 </div>
 
+
                 <div class="feature-highlight">
                     <h4>🤖 AI Features</h4>
                     <p>• Semantic search finds emails by meaning, not just keywords<br>
                     • AI generates smart response suggestions<br>
                     • Tone adjustment for perfect communication<br>
                     • Response history and learning</p>
+                </div>
+
+                <div class="search-section">
+                    <h3>🧪 TTS Test</h3>
+                    <div class="tts-test-panel">
+                        <button id="testTTSBtn" class="test-tts-btn">🔊 Test TTS</button>
+                        <div id="testTTSResult" class="test-tts-result" style="display: none;">
+                            <p>This is a test of the text-to-speech functionality. If you can hear this, TTS is working correctly!</p>
+                            <button class="tts-read-btn" onclick="smartEmailManager.readTestSummary()">🔊 Read Test</button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="stats-panel">
@@ -158,7 +170,7 @@
         <div class="spinner"></div>
         <span>Processing...</span>
     </div>
-
-    <script src="app.js"></script>
+    <script type="module" src="app.js"></script>
+    
 </body>
 </html>

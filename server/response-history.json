@@ -1,5 +1,534 @@
 [
   {
+    "id": "hist_1761377947377_9yhvpw74f",
+    "timestamp": "2025-10-25T07:39:07.377Z",
+    "email": {
+      "from": "OpenAI <noreply@email.openai.com>",
+      "subject": "Important Update: Introduction of VAT on Your Invoices",
+      "date": "Fri, 12 Sep 2025 18:06:24 +0000 (UTC)",
+      "threadId": "1993f1b69dbcd671"
+    },
+    "userInstruction": "Generate a helpful response",
+    "suggestions": [
+      {
+        "type": "accept",
+        "text": "Understood, thank you for the update.",
+        "emoji": "✅",
+        "selected": false
+      },
+      {
+        "type": "decline",
+        "text": "I prefer not to include VAT.",
+        "emoji": "❌",
+        "selected": false
+      },
+      {
+        "type": "modify",
+        "text": "Can we discuss this further?",
+        "emoji": "🔄",
+        "selected": false
+      }
+    ],
+    "analysis": {
+      "emailType": "invoice update",
+      "urgency": "high",
+      "tone": "formal",
+      "keyPoints": [
+        "VAT introduction",
+        "impact on invoices"
+      ]
+    },
+    "metadata": {
+      "model": "gpt-4o-mini",
+      "tokensUsed": 538,
+      "cost": "0.0807",
+      "processingTime": 1761377947375,
+      "historyId": "hist_1761377947377_tckhea98s"
+    },
+    "status": "generated"
+  },
+  {
+    "id": "hist_1761375519412_az1sw6eau",
+    "timestamp": "2025-10-25T06:58:39.412Z",
+    "email": {
+      "from": "OpenAI <noreply@email.openai.com>",
+      "subject": "Important Update: Introduction of VAT on Your Invoices",
+      "date": "Fri, 12 Sep 2025 18:06:24 +0000 (UTC)",
+      "threadId": "1993f1b69dbcd671"
+    },
+    "userInstruction": "Generate a helpful response",
+    "suggestions": [
+      {
+        "type": "accept",
+        "text": "Understood, I accept the update.",
+        "emoji": "✅",
+        "selected": false
+      },
+      {
+        "type": "decline",
+        "text": "I prefer not to implement VAT.",
+        "emoji": "❌",
+        "selected": false
+      },
+      {
+        "type": "modify",
+        "text": "Can we discuss this further?",
+        "emoji": "🔄",
+        "selected": false
+      }
+    ],
+    "analysis": {
+      "emailType": "important_update",
+      "urgency": "high",
+      "tone": "formal",
+      "keyPoints": [
+        "VAT introduction",
+        "impact on invoices"
+      ]
+    },
+    "metadata": {
+      "model": "gpt-4o-mini",
+      "tokensUsed": 537,
+      "cost": "0.0805",
+      "processingTime": 1761375519411,
+      "historyId": "hist_1761375519412_frts4gc1f"
+    },
+    "status": "generated"
+  },
+  {
+    "id": "hist_1761374597393_zpg424h0n",
+    "timestamp": "2025-10-25T06:43:17.393Z",
+    "email": {
+      "from": "Jeff Huber <jeff@hey.trychroma.com>",
+      "subject": "2 min tour of Chroma Cloud",
+      "date": "Thu, 23 Oct 2025 15:17:09 +0000",
+      "threadId": "19a11a533e77f0f9"
+    },
+    "userInstruction": "Generate a helpful response",
+    "suggestions": [
+      {
+        "type": "accept",
+        "text": "Sure, I'd love to see the tour!",
+        "emoji": "✅",
+        "selected": false
+      },
+      {
+        "type": "decline",
+        "text": "Thanks, but I can't make it.",
+        "emoji": "❌",
+        "selected": false
+      },
+      {
+        "type": "modify",
+        "text": "Can we reschedule for next week?",
+        "emoji": "🔄",
+        "selected": false
+      }
+    ],
+    "analysis": {
+      "emailType": "meeting_invitation",
+      "urgency": "low",
+      "tone": "casual",
+      "keyPoints": [
+        "2 min tour",
+        "Chroma Cloud"
+      ]
+    },
+    "metadata": {
+      "model": "gpt-4o-mini",
+      "tokensUsed": 542,
+      "cost": "0.0813",
+      "processingTime": 1761374597392,
+      "historyId": "hist_1761374597393_8u2ncpaqw"
+    },
+    "status": "generated"
+  },
+  {
+    "id": "hist_1761374587391_9a0z1auw0",
+    "timestamp": "2025-10-25T06:43:07.391Z",
+    "email": {
+      "from": "Jeff Huber <jeff@hey.trychroma.com>",
+      "subject": "2 min tour of Chroma Cloud",
+      "date": "Thu, 23 Oct 2025 15:17:09 +0000",
+      "threadId": "19a11a533e77f0f9"
+    },
+    "userInstruction": "Generate a helpful response",
+    "suggestions": [
+      {
+        "type": "accept",
+        "text": "Sure, I'd love to see the tour!",
+        "emoji": "✅",
+        "selected": false
+      },
+      {
+        "type": "decline",
+        "text": "Thanks, but I can't make it.",
+        "emoji": "❌",
+        "selected": false
+      },
+      {
+        "type": "modify",
+        "text": "Can we reschedule for next week?",
+        "emoji": "🔄",
+        "selected": false
+      }
+    ],
+    "analysis": {
+      "emailType": "invitation",
+      "urgency": "low",
+      "tone": "casual",
+      "keyPoints": [
+        "2 min tour",
+        "Chroma Cloud"
+      ]
+    },
+    "metadata": {
+      "model": "gpt-4o-mini",
+      "tokensUsed": 541,
+      "cost": "0.0811",
+      "processingTime": 1761374587390,
+      "historyId": "hist_1761374587391_u9diylf5x"
+    },
+    "status": "generated"
+  },
+  {
+    "id": "hist_1761374561683_r0tlajgcm",
+    "timestamp": "2025-10-25T06:42:41.683Z",
+    "email": {
+      "from": "Jeff Huber <jeff@hey.trychroma.com>",
+      "subject": "2 min tour of Chroma Cloud",
+      "date": "Thu, 23 Oct 2025 15:17:09 +0000",
+      "threadId": "19a11a533e77f0f9"
+    },
+    "userInstruction": "Generate a helpful response",
+    "suggestions": [
+      {
+        "type": "accept",
+        "text": "Yes, I’d love to see the tour!",
+        "emoji": "✅",
+        "selected": false
+      },
+      {
+        "type": "decline",
+        "text": "Thanks, but I’m unavailable.",
+        "emoji": "❌",
+        "selected": false
+      },
+      {
+        "type": "modify",
+        "text": "Can we reschedule for tomorrow?",
+        "emoji": "🔄",
+        "selected": false
+      }
+    ],
+    "analysis": {
+      "emailType": "meeting_invitation",
+      "urgency": "low",
+      "tone": "casual",
+      "keyPoints": [
+        "2 min tour",
+        "Chroma Cloud"
+      ]
+    },
+    "metadata": {
+      "model": "gpt-4o-mini",
+      "tokensUsed": 541,
+      "cost": "0.0811",
+      "processingTime": 1761374561681,
+      "historyId": "hist_1761374561683_e3jz030g5"
+    },
+    "status": "generated"
+  },
+  {
+    "id": "hist_1761373252018_7is8o4wbb",
+    "timestamp": "2025-10-25T06:20:52.018Z",
+    "email": {
+      "from": "The Substack Post <post+news-and-views@substack.com>",
+      "subject": "Substack is a social media app",
+      "date": "Wed, 1 Oct 2025 17:01:57 +0000",
+      "threadId": "199a0fe16416107c"
+    },
+    "userInstruction": "Generate a helpful response",
+    "suggestions": [
+      {
+        "type": "accept",
+        "text": "Sounds great, I'm on board!",
+        "emoji": "✅",
+        "selected": false
+      },
+      {
+        "type": "decline",
+        "text": "Not interested, thank you.",
+        "emoji": "❌",
+        "selected": false
+      },
+      {
+        "type": "modify",
+        "text": "Could you clarify more details?",
+        "emoji": "🔄",
+        "selected": false
+      }
+    ],
+    "analysis": {
+      "emailType": "informative",
+      "urgency": "low",
+      "tone": "casual",
+      "keyPoints": [
+        "Substack",
+        "social media app"
+      ]
+    },
+    "metadata": {
+      "model": "gpt-4o-mini",
+      "tokensUsed": 536,
+      "cost": "0.0804",
+      "processingTime": 1761373252017,
+      "historyId": "hist_1761373252018_0ok0vkf6x"
+    },
+    "status": "generated"
+  },
+  {
+    "id": "hist_1761372892978_n5q7i8ck6",
+    "timestamp": "2025-10-25T06:14:52.978Z",
+    "email": {
+      "from": "GitHub <noreply@github.com>",
+      "subject": "[GitHub] Please verify your device",
+      "date": "Fri, 24 Oct 2025 19:43:29 -0700",
+      "threadId": "19a193fe7c50fad2"
+    },
+    "userInstruction": "Generate a helpful response",
+    "suggestions": [
+      {
+        "type": "accept",
+        "text": "Device verified, thank you!",
+        "emoji": "✅",
+        "selected": false
+      },
+      {
+        "type": "decline",
+        "text": "I cannot verify this device.",
+        "emoji": "❌",
+        "selected": false
+      },
+      {
+        "type": "modify",
+        "text": "Can I verify later?",
+        "emoji": "🔄",
+        "selected": false
+      }
+    ],
+    "analysis": {
+      "emailType": "device_verification",
+      "urgency": "high",
+      "tone": "formal",
+      "keyPoints": [
+        "device verification",
+        "GitHub"
+      ]
+    },
+    "metadata": {
+      "model": "gpt-4o-mini",
+      "tokensUsed": 528,
+      "cost": "0.0792",
+      "processingTime": 1761372892977,
+      "historyId": "hist_1761372892978_uhdsg1h4p"
+    },
+    "status": "generated"
+  },
+  {
+    "id": "hist_1761372784519_42x3v61hk",
+    "timestamp": "2025-10-25T06:13:04.519Z",
+    "email": {
+      "from": "\"Thiên Phú Đào (via Google Drive)\" <drive-shares-dm-noreply@google.com>",
+      "subject": "Folder shared with you: \"decodingdevops\"",
+      "date": "Sat, 20 Sep 2025 03:24:23 +0000",
+      "threadId": "1996526c42c40981"
+    },
+    "userInstruction": "Generate a helpful response",
+    "suggestions": [
+      {
+        "type": "accept",
+        "text": "Thank you for sharing the folder!",
+        "emoji": "✅",
+        "selected": false
+      },
+      {
+        "type": "decline",
+        "text": "I appreciate it, but I'll pass.",
+        "emoji": "❌",
+        "selected": false
+      },
+      {
+        "type": "modify",
+        "text": "Could you add more documents, please?",
+        "emoji": "🔄",
+        "selected": false
+      }
+    ],
+    "analysis": {
+      "emailType": "folder_share",
+      "urgency": "low",
+      "tone": "formal",
+      "keyPoints": [
+        "folder",
+        "decodingdevops"
+      ]
+    },
+    "metadata": {
+      "model": "gpt-4o-mini",
+      "tokensUsed": 551,
+      "cost": "0.0826",
+      "processingTime": 1761372784517,
+      "historyId": "hist_1761372784519_n9rqstghl"
+    },
+    "status": "generated"
+  },
+  {
+    "id": "hist_1761372686067_5kd4u5ixj",
+    "timestamp": "2025-10-25T06:11:26.067Z",
+    "email": {
+      "from": "Cyber Syrup <cybersyrup@mail.beehiiv.com>",
+      "subject": "Envoy Air Confirms Involvement in Oracle E-Business Suite Cyberattack",
+      "date": "Mon, 20 Oct 2025 14:03:00 +0000 (UTC)",
+      "threadId": "19a01ee3a4e91f41"
+    },
+    "userInstruction": "I can attend",
+    "suggestions": [
+      {
+        "type": "accept",
+        "text": "Yes, I can attend.",
+        "emoji": "✅",
+        "selected": false
+      },
+      {
+        "type": "decline",
+        "text": "Sorry, I'm unavailable.",
+        "emoji": "❌",
+        "selected": false
+      },
+      {
+        "type": "modify",
+        "text": "Could we reschedule to 3pm?",
+        "emoji": "🔄",
+        "selected": false
+      }
+    ],
+    "analysis": {
+      "emailType": "notification",
+      "urgency": "medium",
+      "tone": "professional",
+      "keyPoints": [
+        "cyberattack confirmation",
+        "Envoy Air",
+        "Oracle E-Business Suite"
+      ]
+    },
+    "metadata": {
+      "model": "gpt-4o-mini",
+      "tokensUsed": 553,
+      "cost": "0.0829",
+      "processingTime": 1761372686066,
+      "historyId": "hist_1761372686067_owshfe5j7"
+    },
+    "status": "generated"
+  },
+  {
+    "id": "hist_1761364773622_1cbb7jxnq",
+    "timestamp": "2025-10-25T03:59:33.622Z",
+    "email": {
+      "from": "Discord <noreply@discord.com>",
+      "subject": "mami7x mentioned you in GAME THUẦN VIỆT",
+      "date": "Fri, 03 Oct 2025 08:10:18 +0000 (UTC)",
+      "threadId": "199a91f35da39476"
+    },
+    "userInstruction": "Generate a helpful response",
+    "suggestions": [
+      {
+        "type": "accept",
+        "text": "Sure, I'm in! 🎮",
+        "emoji": "✅",
+        "selected": false
+      },
+      {
+        "type": "decline",
+        "text": "Thanks, but I can't join. ❌",
+        "emoji": "❌",
+        "selected": false
+      },
+      {
+        "type": "modify",
+        "text": "Can we chat later? 🕒",
+        "emoji": "🔄",
+        "selected": false
+      }
+    ],
+    "analysis": {
+      "emailType": "mention_notification",
+      "urgency": "low",
+      "tone": "casual",
+      "keyPoints": [
+        "mami7x",
+        "GAME THUẦN VIỆT"
+      ]
+    },
+    "metadata": {
+      "model": "gpt-4o-mini",
+      "tokensUsed": 554,
+      "cost": "0.0831",
+      "processingTime": 1761364773620,
+      "historyId": "hist_1761364773622_cfjk9s0vq"
+    },
+    "status": "generated"
+  },
+  {
+    "id": "hist_1761361958835_p8mupjvpt",
+    "timestamp": "2025-10-25T03:12:38.835Z",
+    "email": {
+      "from": "Substack <no-reply@substack.com>",
+      "subject": "\"Bạn đang mắc kẹt vì bạn từ chối trưởng thành. (bài rất nặng)\" and 4 more",
+      "date": "Fri, 24 Oct 2025 06:44:27 +0000",
+      "threadId": "19a14f62ed0fff41"
+    },
+    "userInstruction": "I need more time",
+    "suggestions": [
+      {
+        "type": "accept",
+        "text": "Sure, I need more time.",
+        "emoji": "✅",
+        "selected": false
+      },
+      {
+        "type": "decline",
+        "text": "I can't commit right now.",
+        "emoji": "❌",
+        "selected": false
+      },
+      {
+        "type": "modify",
+        "text": "Can we extend the deadline?",
+        "emoji": "🔄",
+        "selected": false
+      }
+    ],
+    "analysis": {
+      "emailType": "informational",
+      "urgency": "low",
+      "tone": "casual",
+      "keyPoints": [
+        "need more time",
+        "self-reflection"
+      ]
+    },
+    "metadata": {
+      "model": "gpt-4o-mini",
+      "tokensUsed": 551,
+      "cost": "0.0826",
+      "processingTime": 1761361958833,
+      "historyId": "hist_1761361958835_ecdczyw9z"
+    },
+    "status": "generated"
+  },
+  {
     "id": "hist_1761312524428_mwlnkx3k3",
     "timestamp": "2025-10-24T13:28:44.428Z",
     "email": {
@@ -236,874 +765,6 @@
       "cost": "0.0828",
       "processingTime": 1761311749247,
       "historyId": "hist_1761311749248_f6bsmmpl1"
-    },
-    "status": "generated"
-  },
-  {
-    "id": "hist_1761311740310_fs3q1w533",
-    "timestamp": "2025-10-24T13:15:40.310Z",
-    "email": {
-      "from": "Substack <no-reply@substack.com>",
-      "subject": "\"Bạn đang mắc kẹt vì bạn từ chối trưởng thành. (bài rất nặng)\" and 4 more",
-      "date": "Fri, 24 Oct 2025 06:44:27 +0000",
-      "threadId": "19a14f62ed0fff41"
-    },
-    "userInstruction": "I need more time",
-    "suggestions": [
-      {
-        "type": "accept",
-        "text": "I need more time, but I'm in!",
-        "emoji": "✅",
-        "selected": false
-      },
-      {
-        "type": "decline",
-        "text": "I can't commit right now, sorry.",
-        "emoji": "❌",
-        "selected": false
-      },
-      {
-        "type": "modify",
-        "text": "Can we push this back a week?",
-        "emoji": "🔄",
-        "selected": false
-      }
-    ],
-    "analysis": {
-      "emailType": "newsletter",
-      "urgency": "low",
-      "tone": "casual",
-      "keyPoints": [
-        "content update",
-        "personal growth"
-      ]
-    },
-    "metadata": {
-      "model": "gpt-4o-mini",
-      "tokensUsed": 553,
-      "cost": "0.0829",
-      "processingTime": 1761311740308,
-      "historyId": "hist_1761311740310_zuuvfmfq3"
-    },
-    "status": "generated"
-  },
-  {
-    "id": "hist_1761310744496_1uzolmtxr",
-    "timestamp": "2025-10-24T12:59:04.496Z",
-    "email": {
-      "from": "Michael from Cursor <michael@mail.cursor.com>",
-      "subject": "New in Cursor: Plan Mode, Slash Commands, and more",
-      "date": "Tue, 14 Oct 2025 15:21:31 +0000",
-      "threadId": "199e3501d47300ae"
-    },
-    "userInstruction": "Generate a helpful response",
-    "suggestions": [
-      {
-        "type": "accept",
-        "text": "Excited to try out the new features!",
-        "emoji": "✅",
-        "selected": false
-      },
-      {
-        "type": "decline",
-        "text": "Thanks, but I'll pass this time.",
-        "emoji": "❌",
-        "selected": false
-      },
-      {
-        "type": "modify",
-        "text": "Could you provide more details, please?",
-        "emoji": "🔄",
-        "selected": false
-      }
-    ],
-    "analysis": {
-      "emailType": "product_update",
-      "urgency": "low",
-      "tone": "informative",
-      "keyPoints": [
-        "new features",
-        "product update"
-      ]
-    },
-    "metadata": {
-      "model": "gpt-4o-mini",
-      "tokensUsed": 540,
-      "cost": "0.0810",
-      "processingTime": 1761310744495,
-      "historyId": "hist_1761310744496_b80n5f3if"
-    },
-    "status": "generated"
-  },
-  {
-    "id": "hist_1761310364936_rbqpsw1ic",
-    "timestamp": "2025-10-24T12:52:44.936Z",
-    "email": {
-      "from": "huggingface <website@huggingface.co>",
-      "subject": "[Hugging Face] Click this link to confirm your email address",
-      "date": "Thu, 11 Sep 2025 15:12:20 +0000",
-      "threadId": "1993955b14fdaeba"
-    },
-    "userInstruction": "This is email is scam, dont confirm",
-    "suggestions": [
-      {
-        "type": "accept",
-        "text": "I confirm my email address.",
-        "emoji": "✅",
-        "selected": false
-      },
-      {
-        "type": "decline",
-        "text": "I won't confirm this email.",
-        "emoji": "❌",
-        "selected": false
-      },
-      {
-        "type": "modify",
-        "text": "Can you send a secure link?",
-        "emoji": "🔄",
-        "selected": false
-      }
-    ],
-    "analysis": {
-      "emailType": "email_confirmation",
-      "urgency": "low",
-      "tone": "formal",
-      "keyPoints": [
-        "email confirmation",
-        "potential scam"
-      ]
-    },
-    "metadata": {
-      "model": "gpt-4o-mini",
-      "tokensUsed": 539,
-      "cost": "0.0808",
-      "processingTime": 1761310364934,
-      "historyId": "hist_1761310364936_oaacka9mw"
-    },
-    "status": "generated"
-  },
-  {
-    "id": "hist_1761310330145_f53slncaq",
-    "timestamp": "2025-10-24T12:52:10.145Z",
-    "email": {
-      "from": "huggingface <website@huggingface.co>",
-      "subject": "[Hugging Face] Click this link to confirm your email address",
-      "date": "Thu, 11 Sep 2025 15:12:20 +0000",
-      "threadId": "1993955b14fdaeba"
-    },
-    "userInstruction": "i dont wanna confirm this email, I think this is a scam email",
-    "suggestions": [
-      {
-        "type": "accept",
-        "text": "I confirm my email, thank you.",
-        "emoji": "✅",
-        "selected": false
-      },
-      {
-        "type": "decline",
-        "text": "I won't confirm this email, thanks.",
-        "emoji": "❌",
-        "selected": false
-      },
-      {
-        "type": "modify",
-        "text": "Can you verify this email first?",
-        "emoji": "🔄",
-        "selected": false
-      }
-    ],
-    "analysis": {
-      "emailType": "email_confirmation_request",
-      "urgency": "low",
-      "tone": "formal",
-      "keyPoints": [
-        "email confirmation",
-        "potential scam"
-      ]
-    },
-    "metadata": {
-      "model": "gpt-4o-mini",
-      "tokensUsed": 550,
-      "cost": "0.0825",
-      "processingTime": 1761310330144,
-      "historyId": "hist_1761310330145_lfx06oian"
-    },
-    "status": "generated"
-  },
-  {
-    "id": "hist_1761310118783_v3c1k6si9",
-    "timestamp": "2025-10-24T12:48:38.783Z",
-    "email": {
-      "from": "Khan Academy <no-reply@khanacademy.org>",
-      "subject": "There’s still time to keep that streak! ⏲️",
-      "date": "Fri, 17 Oct 2025 08:40:46 +0000 (UTC)",
-      "threadId": "199f15422343ee0a"
-    },
-    "userInstruction": "Generate a helpful response",
-    "suggestions": [
-      {
-        "type": "accept",
-        "text": "I'm ready to keep my streak!",
-        "emoji": "✅",
-        "selected": false
-      },
-      {
-        "type": "decline",
-        "text": "Thanks, but I’ll pass this time.",
-        "emoji": "❌",
-        "selected": false
-      },
-      {
-        "type": "modify",
-        "text": "Can you extend the deadline, please?",
-        "emoji": "🔄",
-        "selected": false
-      }
-    ],
-    "analysis": {
-      "emailType": "motivational_reminder",
-      "urgency": "low",
-      "tone": "casual",
-      "keyPoints": [
-        "streak",
-        "deadline"
-      ]
-    },
-    "metadata": {
-      "model": "gpt-4o-mini",
-      "tokensUsed": 545,
-      "cost": "0.0817",
-      "processingTime": 1761310118781,
-      "historyId": "hist_1761310118783_oticd3lxk"
-    },
-    "status": "generated"
-  },
-  {
-    "id": "hist_1761310023315_7qh74gqd4",
-    "timestamp": "2025-10-24T12:47:03.315Z",
-    "email": {
-      "from": "Microsoft account team <account-security-noreply@accountprotection.microsoft.com>",
-      "subject": "Your single-use code",
-      "date": "Wed, 08 Oct 2025 08:08:49 -0700",
-      "threadId": "199c45e2f0513735"
-    },
-    "userInstruction": "Generate a helpful response",
-    "suggestions": [
-      {
-        "type": "accept",
-        "text": "Thank you, code received and accepted.",
-        "emoji": "✅",
-        "selected": false
-      },
-      {
-        "type": "decline",
-        "text": "I did not request this code.",
-        "emoji": "❌",
-        "selected": false
-      },
-      {
-        "type": "modify",
-        "text": "Please resend the code, it's missing.",
-        "emoji": "🔄",
-        "selected": false
-      }
-    ],
-    "analysis": {
-      "emailType": "security_notification",
-      "urgency": "high",
-      "tone": "formal",
-      "keyPoints": [
-        "single-use code",
-        "account security"
-      ]
-    },
-    "metadata": {
-      "model": "gpt-4o-mini",
-      "tokensUsed": 536,
-      "cost": "0.0804",
-      "processingTime": 1761310023314,
-      "historyId": "hist_1761310023315_38oz788ce"
-    },
-    "status": "generated"
-  },
-  {
-    "id": "hist_1761310021043_e7x3t1phv",
-    "timestamp": "2025-10-24T12:47:01.043Z",
-    "email": {
-      "from": "Microsoft account team <account-security-noreply@accountprotection.microsoft.com>",
-      "subject": "Your single-use code",
-      "date": "Wed, 08 Oct 2025 08:08:49 -0700",
-      "threadId": "199c45e2f0513735"
-    },
-    "userInstruction": "Generate a helpful response",
-    "suggestions": [
-      {
-        "type": "accept",
-        "text": "Thanks, I received the code.",
-        "emoji": "✅",
-        "selected": false
-      },
-      {
-        "type": "decline",
-        "text": "I didn't request this code.",
-        "emoji": "❌",
-        "selected": false
-      },
-      {
-        "type": "modify",
-        "text": "Please resend the code.",
-        "emoji": "🔄",
-        "selected": false
-      }
-    ],
-    "analysis": {
-      "emailType": "security_notification",
-      "urgency": "high",
-      "tone": "formal",
-      "keyPoints": [
-        "single-use code",
-        "account security"
-      ]
-    },
-    "metadata": {
-      "model": "gpt-4o-mini",
-      "tokensUsed": 531,
-      "cost": "0.0796",
-      "processingTime": 1761310021042,
-      "historyId": "hist_1761310021043_071beophq"
-    },
-    "status": "generated"
-  },
-  {
-    "id": "hist_1761310005212_0q011q9bt",
-    "timestamp": "2025-10-24T12:46:45.212Z",
-    "email": {
-      "from": "Microsoft account team <account-security-noreply@accountprotection.microsoft.com>",
-      "subject": "Your single-use code",
-      "date": "Wed, 08 Oct 2025 08:08:49 -0700",
-      "threadId": "199c45e2f0513735"
-    },
-    "userInstruction": "Generate a helpful response",
-    "suggestions": [
-      {
-        "type": "accept",
-        "text": "Thank you, I received the code.",
-        "emoji": "✅",
-        "selected": false
-      },
-      {
-        "type": "decline",
-        "text": "I didn't request a code, thanks.",
-        "emoji": "❌",
-        "selected": false
-      },
-      {
-        "type": "modify",
-        "text": "Could you resend it, please?",
-        "emoji": "🔄",
-        "selected": false
-      }
-    ],
-    "analysis": {
-      "emailType": "security_alert",
-      "urgency": "high",
-      "tone": "formal",
-      "keyPoints": [
-        "single-use code",
-        "security confirmation"
-      ]
-    },
-    "metadata": {
-      "model": "gpt-4o-mini",
-      "tokensUsed": 536,
-      "cost": "0.0804",
-      "processingTime": 1761310005212,
-      "historyId": "hist_1761310005212_yztbfcwos"
-    },
-    "status": "generated"
-  },
-  {
-    "id": "hist_1761309998598_bwi4t2vnu",
-    "timestamp": "2025-10-24T12:46:38.598Z",
-    "email": {
-      "from": "Microsoft account team <account-security-noreply@accountprotection.microsoft.com>",
-      "subject": "Your single-use code",
-      "date": "Wed, 08 Oct 2025 08:08:49 -0700",
-      "threadId": "199c45e2f0513735"
-    },
-    "userInstruction": "Generate a helpful response",
-    "suggestions": [
-      {
-        "type": "accept",
-        "text": "Thank you, I received the code.",
-        "emoji": "✅",
-        "selected": false
-      },
-      {
-        "type": "decline",
-        "text": "I don't need the code, thanks.",
-        "emoji": "❌",
-        "selected": false
-      },
-      {
-        "type": "modify",
-        "text": "Can you resend this code?",
-        "emoji": "🔄",
-        "selected": false
-      }
-    ],
-    "analysis": {
-      "emailType": "security_notification",
-      "urgency": "high",
-      "tone": "formal",
-      "keyPoints": [
-        "single-use code",
-        "account security"
-      ]
-    },
-    "metadata": {
-      "model": "gpt-4o-mini",
-      "tokensUsed": 535,
-      "cost": "0.0802",
-      "processingTime": 1761309998597,
-      "historyId": "hist_1761309998598_e35yzmfqr"
-    },
-    "status": "generated"
-  },
-  {
-    "id": "hist_1761309990471_eh3q3vn39",
-    "timestamp": "2025-10-24T12:46:30.471Z",
-    "email": {
-      "from": "Google <no-reply@google.com>",
-      "subject": "✅ Chào Tân! Hãy hoàn tất quy trình thiết lập thiết bị Apple iPhone bằng các ứng dụng mới nhất của Google",
-      "date": "Sun, 07 Sep 2025 20:08:04 -0700",
-      "threadId": "199274b858ef83bb"
-    },
-    "userInstruction": "Generate a helpful response",
-    "suggestions": [
-      {
-        "type": "accept",
-        "text": "I’ll complete the setup, thanks!",
-        "emoji": "✅",
-        "selected": false
-      },
-      {
-        "type": "decline",
-        "text": "I won't be setting up now, thanks.",
-        "emoji": "❌",
-        "selected": false
-      },
-      {
-        "type": "modify",
-        "text": "Can you provide more setup details?",
-        "emoji": "🔄",
-        "selected": false
-      }
-    ],
-    "analysis": {
-      "emailType": "device setup instruction",
-      "urgency": "medium",
-      "tone": "formal",
-      "keyPoints": [
-        "setup process",
-        "Google apps",
-        "Apple iPhone"
-      ]
-    },
-    "metadata": {
-      "model": "gpt-4o-mini",
-      "tokensUsed": 558,
-      "cost": "0.0837",
-      "processingTime": 1761309990470,
-      "historyId": "hist_1761309990471_ft9padpxt"
-    },
-    "status": "generated"
-  },
-  {
-    "id": "hist_1761309980444_baa08147a",
-    "timestamp": "2025-10-24T12:46:20.444Z",
-    "email": {
-      "from": "Google <no-reply@google.com>",
-      "subject": "✅ Chào Tân! Hãy hoàn tất quy trình thiết lập thiết bị Apple iPhone bằng các ứng dụng mới nhất của Google",
-      "date": "Sun, 07 Sep 2025 20:08:04 -0700",
-      "threadId": "199274b858ef83bb"
-    },
-    "userInstruction": "Generate a helpful response",
-    "suggestions": [
-      {
-        "type": "accept",
-        "text": "I’ll complete the setup, thank you!",
-        "emoji": "✅",
-        "selected": false
-      },
-      {
-        "type": "decline",
-        "text": "I won’t be setting it up now.",
-        "emoji": "❌",
-        "selected": false
-      },
-      {
-        "type": "modify",
-        "text": "Can you provide more setup details?",
-        "emoji": "🔄",
-        "selected": false
-      }
-    ],
-    "analysis": {
-      "emailType": "setup_instruction",
-      "urgency": "medium",
-      "tone": "formal",
-      "keyPoints": [
-        "iPhone setup",
-        "Google apps"
-      ]
-    },
-    "metadata": {
-      "model": "gpt-4o-mini",
-      "tokensUsed": 554,
-      "cost": "0.0831",
-      "processingTime": 1761309980443,
-      "historyId": "hist_1761309980444_sqbogzysr"
-    },
-    "status": "generated"
-  },
-  {
-    "id": "hist_1761309486579_tcfbouqy8",
-    "timestamp": "2025-10-24T12:38:06.579Z",
-    "email": {
-      "from": "Google <no-reply@google.com>",
-      "subject": "✅ Chào Tân! Hãy hoàn tất quy trình thiết lập thiết bị Apple iPhone bằng các ứng dụng mới nhất của Google",
-      "date": "Sun, 07 Sep 2025 20:08:04 -0700",
-      "threadId": "199274b858ef83bb"
-    },
-    "userInstruction": "Generate a helpful response",
-    "suggestions": [
-      {
-        "type": "accept",
-        "text": "I’ll complete the setup now! ✅",
-        "emoji": "✅",
-        "selected": false
-      },
-      {
-        "type": "decline",
-        "text": "Thanks, but I won't set it up. ❌",
-        "emoji": "❌",
-        "selected": false
-      },
-      {
-        "type": "modify",
-        "text": "Can you provide more details, please? 🔄",
-        "emoji": "🔄",
-        "selected": false
-      }
-    ],
-    "analysis": {
-      "emailType": "setup_instructions",
-      "urgency": "medium",
-      "tone": "casual",
-      "keyPoints": [
-        "setup device",
-        "Google apps"
-      ]
-    },
-    "metadata": {
-      "model": "gpt-4o-mini",
-      "tokensUsed": 562,
-      "cost": "0.0843",
-      "processingTime": 1761309486578,
-      "historyId": "hist_1761309486579_9x8ux0k90"
-    },
-    "status": "generated"
-  },
-  {
-    "id": "hist_1761234623720_lyan84dc9",
-    "timestamp": "2025-10-23T15:50:23.720Z",
-    "email": {
-      "from": "Alice Smith <alice@company.com>",
-      "subject": "Project Deadline Extension",
-      "date": "2025-01-20"
-    },
-    "userInstruction": "I can accommodate but need to discuss timeline",
-    "suggestions": [
-      {
-        "type": "accept",
-        "text": "I can accommodate the extension.",
-        "emoji": "✅",
-        "selected": false
-      },
-      {
-        "type": "decline",
-        "text": "I can't agree to the extension.",
-        "emoji": "❌",
-        "selected": false
-      },
-      {
-        "type": "modify",
-        "text": "Let's discuss the new timeline soon.",
-        "emoji": "🔄",
-        "selected": false
-      }
-    ],
-    "analysis": {
-      "emailType": "project_update",
-      "urgency": "medium",
-      "tone": "professional",
-      "keyPoints": [
-        "client request",
-        "2-week extension"
-      ]
-    },
-    "metadata": {
-      "model": "gpt-4o-mini",
-      "tokensUsed": 526,
-      "cost": "0.0789",
-      "processingTime": 1761234623719,
-      "historyId": "hist_1761234623721_d0rici8a8"
-    },
-    "status": "generated"
-  },
-  {
-    "id": "hist_1761234247224_sh3y97qra",
-    "timestamp": "2025-10-23T15:44:07.224Z",
-    "email": {
-      "from": "Carol Davis <carol@company.com>",
-      "subject": "Budget Review Meeting",
-      "date": "2025-01-20"
-    },
-    "userInstruction": "I want to decline politely",
-    "suggestions": [
-      {
-        "type": "accept",
-        "text": "Yes, I can join the meeting",
-        "emoji": "✅",
-        "selected": false
-      },
-      {
-        "type": "decline",
-        "text": "Sorry, I'm not available",
-        "emoji": "❌",
-        "selected": false
-      },
-      {
-        "type": "modify",
-        "text": "Can we reschedule for another time?",
-        "emoji": "🔄",
-        "selected": false
-      }
-    ],
-    "analysis": {
-      "emailType": "meeting_invitation",
-      "urgency": "medium",
-      "tone": "professional",
-      "keyPoints": [
-        "budget review meeting",
-        "tomorrow at 3pm"
-      ]
-    },
-    "metadata": {
-      "model": "gpt-4o-mini",
-      "tokensUsed": 534,
-      "cost": "0.0801",
-      "processingTime": 1761234247224,
-      "historyId": "hist_1761234247224_gjlih8cmn"
-    },
-    "status": "selected",
-    "selectedAt": "2025-10-23T15:44:07.261Z"
-  },
-  {
-    "id": "hist_1761234244887_19opcazja",
-    "timestamp": "2025-10-23T15:44:04.887Z",
-    "email": {
-      "from": "Bob Wilson <bob@company.com>",
-      "subject": "Team Building Event",
-      "date": "2025-01-20"
-    },
-    "userInstruction": "I want to accept but ask about the details",
-    "suggestions": [
-      {
-        "type": "accept",
-        "text": "Yes, I'd love to join! What time?",
-        "emoji": "✅",
-        "selected": false
-      },
-      {
-        "type": "decline",
-        "text": "Thanks, but I can't make it.",
-        "emoji": "❌",
-        "selected": false
-      },
-      {
-        "type": "modify",
-        "text": "What time does the event start?",
-        "emoji": "🔄",
-        "selected": false
-      }
-    ],
-    "analysis": {
-      "emailType": "team_building_event_invitation",
-      "urgency": "medium",
-      "tone": "casual",
-      "keyPoints": [
-        "team building event",
-        "next Friday"
-      ]
-    },
-    "metadata": {
-      "model": "gpt-4o-mini",
-      "tokensUsed": 543,
-      "cost": "0.0814",
-      "processingTime": 1761234244887,
-      "historyId": "hist_1761234244887_v7cm45akx"
-    },
-    "status": "generated"
-  },
-  {
-    "id": "hist_1761234242372_hb13ly7tt",
-    "timestamp": "2025-10-23T15:44:02.372Z",
-    "email": {
-      "from": "Alice Smith <alice@company.com>",
-      "subject": "Project Deadline Extension",
-      "date": "2025-01-20"
-    },
-    "userInstruction": "I can accommodate but need to discuss timeline changes",
-    "suggestions": [
-      {
-        "type": "accept",
-        "text": "I can accommodate the extension, thanks!",
-        "emoji": "✅",
-        "selected": false
-      },
-      {
-        "type": "decline",
-        "text": "I cannot extend the deadline, sorry.",
-        "emoji": "❌",
-        "selected": false
-      },
-      {
-        "type": "modify",
-        "text": "Let's discuss the new timeline soon.",
-        "emoji": "🔄",
-        "selected": false
-      }
-    ],
-    "analysis": {
-      "emailType": "project update",
-      "urgency": "medium",
-      "tone": "professional",
-      "keyPoints": [
-        "client request",
-        "2-week extension",
-        "schedule adjustment"
-      ]
-    },
-    "metadata": {
-      "model": "gpt-4o-mini",
-      "tokensUsed": 540,
-      "cost": "0.0810",
-      "processingTime": 1761234242371,
-      "historyId": "hist_1761234242372_qgcntjfhu"
-    },
-    "status": "generated"
-  },
-  {
-    "id": "hist_1761234184894_iez3ehlp0",
-    "timestamp": "2025-10-23T15:43:04.894Z",
-    "email": {
-      "from": "Mike Chen <mike@company.com>",
-      "subject": "Quick Sync Meeting",
-      "date": "2025-01-20"
-    },
-    "userInstruction": "I want to accept but suggest a different time",
-    "suggestions": [
-      {
-        "type": "accept",
-        "text": "Yes, I'm available for the meeting.",
-        "emoji": "✅",
-        "selected": false
-      },
-      {
-        "type": "decline",
-        "text": "Unfortunately, I can't make it.",
-        "emoji": "❌",
-        "selected": false
-      },
-      {
-        "type": "modify",
-        "text": "Could we meet at 11am instead?",
-        "emoji": "🔄",
-        "selected": false
-      }
-    ],
-    "analysis": {
-      "emailType": "meeting_invitation",
-      "urgency": "medium",
-      "tone": "professional",
-      "keyPoints": [
-        "15-minute sync",
-        "tomorrow morning"
-      ]
-    },
-    "metadata": {
-      "model": "gpt-4o-mini",
-      "tokensUsed": 536,
-      "cost": "0.0804",
-      "processingTime": 1761234184894,
-      "historyId": "hist_1761234184894_g8g2x1fge"
-    },
-    "status": "selected",
-    "selectedAt": "2025-10-23T15:43:14.142Z"
-  },
-  {
-    "id": "hist_1761234177834_xzpu5t39f",
-    "timestamp": "2025-10-23T15:42:57.834Z",
-    "email": {
-      "from": "Sarah Johnson <sarah@company.com>",
-      "subject": "Project Meeting Next Week",
-      "date": "2025-01-20",
-      "threadId": "thread_123"
-    },
-    "userInstruction": "I want to accept but ask for the agenda",
-    "suggestions": [
-      {
-        "id": "sug_1",
-        "type": "accept",
-        "text": "Yes, I can join the meeting. What is the agenda?",
-        "emoji": "✅",
-        "tone": "professional",
-        "selected": false
-      },
-      {
-        "id": "sug_2",
-        "type": "decline",
-        "text": "Sorry, I am not available for that time.",
-        "emoji": "❌",
-        "tone": "professional",
-        "selected": false
-      },
-      {
-        "id": "sug_3",
-        "type": "modify",
-        "text": "Can we discuss the agenda first?",
-        "emoji": "🔄",
-        "tone": "professional",
-        "selected": false
-      }
-    ],
-    "analysis": {
-      "emailType": "meeting_invitation",
-      "urgency": "medium",
-      "tone": "professional",
-      "keyPoints": [
-        "Tuesday 2pm",
-        "project meeting"
-      ]
-    },
-    "metadata": {
-      "model": "gpt-4o-mini",
-      "tokensUsed": 550,
-      "cost": "0.0825",
-      "historyId": "hist_1761234177835_vth1xfbpb"
     },
     "status": "generated"
   }

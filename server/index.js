@@ -126,7 +126,7 @@ app.get('/emails', async (req, res) => {
 // Purpose: Fetch emails, generate embeddings, store in ChromaDB
 app.post('/sync', async (req, res) => {
   try {
-    const maxEmails = parseInt(req.body.maxEmails) || 100;
+    const maxEmails = 200;
     
     console.log('\n' + '='.repeat(60));
     console.log('🔄 SYNCING EMAILS');
@@ -721,6 +721,44 @@ app.get('/stats', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message
+    });
+  }
+});
+
+// NEW ENDPOINT #5: Email Summarization
+// Purpose: Generate AI-powered summary of email content
+app.post('/summarize-email', async (req, res) => {
+  try {
+    const { emailId, emailData } = req.body;
+
+    if (!emailId || !emailData) {
+      return res.status(400).json({
+        success: false,
+        error: 'emailId and emailData are required'
+      });
+    }
+
+    console.log('\n' + '='.repeat(60));
+    console.log('📝 EMAIL SUMMARIZATION');
+    console.log('='.repeat(60));
+    console.log(`📧 Email: ${emailData.subject}`);
+    console.log(`📧 From: ${emailData.from}`);
+    console.log('='.repeat(60) + '\n');
+
+    // Generate email summary using OpenAI
+    const summaryResult = await aiResponseService.generateEmailSummary(emailData);
+
+    res.json({
+      success: true,
+      ...summaryResult
+    });
+
+  } catch (error) {
+    console.error('❌ Email summarization error:', error.message);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      hint: 'Make sure OPENAI_API_KEY is set in .env file'
     });
   }
 });
