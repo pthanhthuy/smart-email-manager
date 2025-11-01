@@ -33,6 +33,14 @@ SIMILARITY_THRESHOLD=0.7
 DEFAULT_TONE=professional
 MAX_RESPONSE_TOKENS=500
 
+# Hugging Face Configuration (for embeddings and TTS)
+HF_TOKEN=hf_your-huggingface-token-here
+
+# TTS Configuration
+TTS_MODEL=microsoft/speecht5_tts
+TTS_CACHE_DIR=./summary_tts_cache
+TTS_MAX_TEXT_LENGTH=500
+
 # Notes:
 # 1. Copy this file to .env
 # 2. Replace 'your-openai-api-key-here' with your actual OpenAI API key

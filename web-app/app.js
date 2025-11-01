@@ -1,4 +1,177 @@
-// Smart Email Manager - JavaScript Application
+/**
+ * Hugging Face TTS Client for Email Summary Reading
+ * Replaces Web Speech API with our custom Hugging Face TTS system
+ */
+
+class HuggingFaceTTSClient {
+    constructor(baseUrl = 'http://localhost:3000') {
+        this.baseUrl = baseUrl;
+        this.audioContext = null;
+        this.isPlaying = false;
+        this.currentEmailId = null;
+        this.currentSource = null;
+        this.currentSummary = null;
+        
+        // Voice settings
+        this.voiceSettings = {
+            voice: 'professional', // professional, casual, urgent, detailed
+            rate: 1.0,
+            pitch: 1.0,
+            volume: 1.0
+        };
+        
+        this.initialize();
+    }
+
+    async initialize() {
+        try {
+            // Initialize Web Audio API
+            this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            console.log('🔊 Hugging Face TTS Client initialized');
+        } catch (error) {
+            console.error('❌ Failed to initialize TTS client:', error);
+        }
+    }
+
+    async generateSpeechFromText(text, emailId, voiceProfile = 'professional') {
+        try {
+            console.log(`🎵 Generating Hugging Face speech for email: ${emailId}`);
+
+            const response = await fetch(`${this.baseUrl}/summary-tts/generate/${emailId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    summary_text: text
+                })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                let errorData;
+                try {
+                    errorData = JSON.parse(errorText);
+                } catch {
+                    errorData = { detail: errorText };
+                }
+                throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+            }
+
+            const audioBlob = await response.blob();
+            const audioBuffer = await this.audioContext.decodeAudioData(await audioBlob.arrayBuffer());
+            const duration = audioBuffer.duration;
+
+            console.log(`✅ Hugging Face speech generated for email ${emailId}. Duration: ${duration.toFixed(2)}s`);
+            
+            return {
+                audioBuffer,
+                duration,
+                audioBlob
+            };
+        } catch (error) {
+            console.error('❌ Failed to generate Hugging Face speech:', error);
+            throw error;
+        }
+    }
+
+    async playSummarySpeech(emailId, summaryText, voiceProfile = 'professional') {
+        if (this.isPlaying) {
+            await this.stopSummarySpeech();
+        }
+
+        try {
+            this.isPlaying = true;
+            this.currentEmailId = emailId;
+            this.currentSummary = summaryText;
+
+            const speechData = await this.generateSpeechFromText(summaryText, emailId, voiceProfile);
+            
+            // Create audio source
+            this.currentSource = this.audioContext.createBufferSource();
+            this.currentSource.buffer = speechData.audioBuffer;
+            this.currentSource.connect(this.audioContext.destination);
+
+            // Set up event handlers
+            this.currentSource.onended = () => {
+                this.isPlaying = false;
+                this.currentSource = null;
+                console.log(`🎵 Hugging Face speech playback completed for email: ${emailId}`);
+                this.updateReadButton(emailId, '🔊 Read Summary', 'read');
+            };
+
+            // Start playback
+            this.currentSource.start();
+            console.log(`🎵 Hugging Face speech playback started for email: ${emailId}`);
+            
+            this.updateReadButton(emailId, '⏹️ Stop Reading', 'stop');
+            
+            return {
+                duration: speechData.duration,
+                success: true
+            };
+        } catch (error) {
+            this.isPlaying = false;
+            console.error('❌ Failed to play Hugging Face summary speech:', error);
+            this.updateReadButton(emailId, '🔊 Read Summary', 'read');
+            throw error;
+        }
+    }
+
+    async stopSummarySpeech() {
+        if (this.currentSource && this.isPlaying) {
+            try {
+                this.currentSource.stop();
+                this.currentSource = null;
+                this.isPlaying = false;
+                console.log(`🛑 Hugging Face speech playback stopped for email: ${this.currentEmailId}`);
+                
+                // Update all read buttons
+                document.querySelectorAll('.tts-read-btn').forEach(btn => {
+                    btn.innerHTML = '🔊 Read Summary';
+                });
+            } catch (error) {
+                console.warn('⚠️ Error stopping Hugging Face speech playback:', error);
+            }
+        }
+    }
+
+    updateReadButton(emailId, text, action) {
+        const emailItem = document.querySelector(`[data-email-id="${emailId}"]`)?.closest('.email-item');
+        if (!emailItem) return;
+        
+        const readBtn = emailItem.querySelector('.tts-read-btn');
+        if (readBtn) {
+            readBtn.innerHTML = text;
+            readBtn.setAttribute('data-email-id', emailId);
+            
+            if (action === 'stop') {
+                readBtn.onclick = () => this.stopSummarySpeech();
+            } else {
+                readBtn.onclick = () => this.playSummarySpeech(emailId, this.currentSummary);
+            }
+        }
+    }
+
+    setVoiceProfile(voiceProfile) {
+        this.voiceSettings.voice = voiceProfile;
+        console.log(`🎭 Voice profile set to: ${voiceProfile}`);
+    }
+
+    getCurrentVoiceProfile() {
+        return this.voiceSettings.voice;
+    }
+
+    isCurrentlyPlaying() {
+        return this.isPlaying;
+    }
+
+    getCurrentEmailId() {
+        return this.currentEmailId;
+    }
+}
+
+// Smart Email Manager - JavaScript Application with Hugging Face TTS Integration
 
 class SmartEmailManager {
     constructor() {
@@ -7,7 +180,10 @@ class SmartEmailManager {
         this.selectedEmail = null;
         this.selectedResponse = null;
         
-        // TTS state using Web Speech API
+        // Initialize Hugging Face TTS client
+        this.hfTTS = new HuggingFaceTTSClient(this.apiBaseUrl);
+        
+        // Legacy TTS state (for fallback)
         this.speechSynthesis = window.speechSynthesis;
         this.currentUtterance = null;
         this.currentSummary = null;
@@ -795,13 +971,13 @@ class SmartEmailManager {
             console.log('Created new summary container');
         }
 
-        // Display the summary text with TTS button
+        // Display the summary text with Hugging Face TTS button
         summaryContainer.innerHTML = `
             <div class="summary-content">
                 <div class="summary-header">
                     <span class="summary-icon">📝</span>
                     <span class="summary-title">Email Summary</span>
-                    <button class="tts-read-btn" onclick="smartEmailManager.readSummary('${emailId}')" title="Read Summary">
+                    <button class="tts-read-btn" onclick="smartEmailManager.readSummary('${emailId}')" title="Read Summary with Hugging Face TTS">
                         🔊 Read Summary
                     </button>
                 </div>
@@ -854,8 +1030,28 @@ class SmartEmailManager {
         console.log(`Forced visibility for ${allSummaries.length} email summaries`);
     }
 
-    // Simple Web Speech API TTS method
-    readSummary(emailId) {
+    // NEW: Hugging Face TTS method (replaces Web Speech API)
+    async readSummary(emailId) {
+        if (!this.currentSummary) {
+            this.showMessage('No summary available for TTS', 'error');
+            return;
+        }
+
+        try {
+            // Use Hugging Face TTS instead of Web Speech API
+            await this.hfTTS.playSummarySpeech(emailId, this.currentSummary, this.hfTTS.getCurrentVoiceProfile());
+            this.showMessage('🎵 Playing summary with Hugging Face TTS', 'success');
+        } catch (error) {
+            console.error('Hugging Face TTS error:', error);
+            this.showMessage('Hugging Face TTS failed, falling back to Web Speech API', 'error');
+            
+            // Fallback to Web Speech API
+            this.readSummaryWithWebSpeech(emailId);
+        }
+    }
+
+    // Fallback: Web Speech API method (original implementation)
+    readSummaryWithWebSpeech(emailId) {
         if (!this.currentSummary) {
             this.showMessage('No summary available for TTS', 'error');
             return;
@@ -900,23 +1096,24 @@ class SmartEmailManager {
     }
 
     stopReading() {
+        // Stop Hugging Face TTS
+        this.hfTTS.stopSummarySpeech();
+        
+        // Stop Web Speech API as fallback
         this.speechSynthesis.cancel();
         this.ttsSettings.isPlaying = false;
         
         // Update all read buttons
         document.querySelectorAll('.tts-read-btn').forEach(btn => {
             btn.innerHTML = '🔊 Read Summary';
-            btn.onclick = (e) => {
-                const emailId = e.target.getAttribute('data-email-id');
-                this.readSummary(emailId);
-            };
         });
     }
 
     updateReadButton(emailId, text, action) {
-        const emailItem = document.querySelector(`[data-email-id="${emailId}"]`).closest('.email-item');
-        const readBtn = emailItem.querySelector('.tts-read-btn');
+        const emailItem = document.querySelector(`[data-email-id="${emailId}"]`)?.closest('.email-item');
+        if (!emailItem) return;
         
+        const readBtn = emailItem.querySelector('.tts-read-btn');
         if (readBtn) {
             readBtn.innerHTML = text;
             readBtn.setAttribute('data-email-id', emailId);
@@ -948,16 +1145,31 @@ class SmartEmailManager {
         summaryContainer.classList.add('show');
     }
 
-
     // TTS Test functionality
     testTTS() {
         const testResult = document.getElementById('testTTSResult');
         testResult.style.display = 'block';
-        this.showMessage('TTS test panel shown. Click "Read Test" to test TTS functionality.', 'success');
+        this.showMessage('TTS test panel shown. Click "Read Test" to test Hugging Face TTS functionality.', 'success');
     }
 
-    readTestSummary() {
-        const testText = "This is a test of the text-to-speech functionality. If you can hear this, TTS is working correctly!";
+    async readTestSummary() {
+        const testText = "This is a test of the Hugging Face text-to-speech functionality. If you can hear this, the TTS system is working correctly!";
+        
+        try {
+            // Use Hugging Face TTS for test
+            await this.hfTTS.playSummarySpeech('test_summary', testText, 'professional');
+            this.showMessage('🎵 Hugging Face TTS test started!', 'success');
+        } catch (error) {
+            console.error('Hugging Face TTS test error:', error);
+            this.showMessage('Hugging Face TTS test failed, using Web Speech API fallback', 'error');
+            
+            // Fallback to Web Speech API
+            this.readTestSummaryWithWebSpeech();
+        }
+    }
+
+    readTestSummaryWithWebSpeech() {
+        const testText = "This is a test of the text-to-speech functionality using Web Speech API fallback. If you can hear this, TTS is working correctly!";
         
         // Stop any current speech
         this.speechSynthesis.cancel();
@@ -973,7 +1185,7 @@ class SmartEmailManager {
         // Event handlers
         this.currentUtterance.onstart = () => {
             this.ttsSettings.isPlaying = true;
-            this.showMessage('TTS test started - you should hear speech now!', 'success');
+            this.showMessage('TTS test started with Web Speech API - you should hear speech now!', 'success');
         };
 
         this.currentUtterance.onend = () => {
@@ -1001,7 +1213,7 @@ class SmartEmailManager {
         switch(e.key) {
             case ' ': // Spacebar - Play/Pause
                 e.preventDefault();
-                if (this.ttsSettings.isPlaying) {
+                if (this.hfTTS.isCurrentlyPlaying() || this.ttsSettings.isPlaying) {
                     this.stopReading();
                 } else if (this.currentSummary) {
                     this.readSummary(this.currentEmailId);
