@@ -179,6 +179,7 @@ class SmartEmailManager {
         this.currentTone = 'professional';
         this.selectedEmail = null;
         this.selectedResponse = null;
+        this.useRAG = false; // RAG mode toggle
         
         // Initialize Hugging Face TTS client
         this.hfTTS = new HuggingFaceTTSClient(this.apiBaseUrl);
@@ -228,6 +229,15 @@ class SmartEmailManager {
                 this.currentTone = e.target.dataset.tone;
             });
         });
+
+        // RAG mode toggle
+        const ragToggle = document.getElementById('ragModeToggle');
+        if (ragToggle) {
+            ragToggle.addEventListener('change', (e) => {
+                this.useRAG = e.target.checked;
+                console.log(`RAG mode: ${this.useRAG ? 'enabled' : 'disabled'}`);
+            });
+        }
 
         // Quick instruction buttons
         const quickButtons = document.querySelectorAll('.quick-btn');
@@ -402,14 +412,23 @@ class SmartEmailManager {
 
     async generateAIResponse(email) {
         this.selectedEmail = email;
-        this.showLoading(true, 'Generating AI response...');
+        const useRAG = this.useRAG;
+        const loadingMessage = useRAG 
+            ? 'Generating AI response with context from similar emails...' 
+            : 'Generating AI response...';
+        this.showLoading(true, loadingMessage);
 
         // Get user instruction from the input field
         const instructionInput = document.getElementById('responseInstruction');
         const userInstruction = instructionInput.value.trim() || 'Generate a helpful response';
 
         try {
-            const response = await fetch(`${this.apiBaseUrl}/generate-response`, {
+            // Choose endpoint based on RAG mode
+            const endpoint = useRAG 
+                ? `${this.apiBaseUrl}/chains/rag-response` 
+                : `${this.apiBaseUrl}/generate-response`;
+            
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -418,7 +437,8 @@ class SmartEmailManager {
                     emailData: email,
                     userInstruction: userInstruction,
                     options: {
-                        tone: this.currentTone
+                        tone: this.currentTone,
+                        contextEmailsLimit: useRAG ? 3 : undefined // Use context when RAG is enabled
                     }
                 })
             });
@@ -428,7 +448,18 @@ class SmartEmailManager {
             }
 
             const data = await response.json();
-            this.displayAIResponse(data.suggestions || []);
+            
+            // Display response with RAG context info if available
+            this.displayAIResponse(data.suggestions || [], data.analysis || {});
+            
+            // Show RAG context info if used
+            if (useRAG && data.metadata && data.metadata.contextEmailsUsed > 0) {
+                this.showMessage(
+                    `✅ Used ${data.metadata.contextEmailsUsed} similar emails as context for better response quality`,
+                    'success',
+                    3000
+                );
+            }
             
             // Clear the instruction field after successful generation
             const instructionInput = document.getElementById('responseInstruction');
@@ -437,6 +468,13 @@ class SmartEmailManager {
         } catch (error) {
             console.error('AI response error:', error);
             this.showMessage(`AI response failed: ${error.message}`, 'error');
+            
+            // Fallback to regular endpoint if RAG fails
+            if (useRAG) {
+                console.log('RAG failed, falling back to regular response generation');
+                this.useRAG = false;
+                return this.generateAIResponse(email);
+            }
         } finally {
             this.showLoading(false);
         }
@@ -475,11 +513,20 @@ class SmartEmailManager {
         }
     }
 
-    displayAIResponse(suggestions) {
+    displayAIResponse(suggestions, analysis = {}) {
         const responsePanel = document.getElementById('aiResponsePanel');
         const optionsContainer = document.getElementById('responseOptions');
         
-        optionsContainer.innerHTML = suggestions.map((suggestion, index) => `
+        // Show context info if RAG was used
+        let contextInfo = '';
+        if (analysis.contextUsed) {
+            const contextCount = analysis.contextEmailsCount || 0;
+            contextInfo = `<div class="rag-context-info" style="margin-bottom: 10px; padding: 8px; background: #e0f2fe; border-radius: 6px; font-size: 12px; color: #0369a1;">
+                🧠 Used ${contextCount} similar emails as context
+            </div>`;
+        }
+        
+        optionsContainer.innerHTML = contextInfo + suggestions.map((suggestion, index) => `
             <div class="response-option ${index === 0 ? 'selected' : ''}" data-response-index="${index}">
                 <div class="response-type">
                     <span>${suggestion.emoji}</span>

@@ -35,3 +35,19 @@ class SummaryRequest(BaseModel):
     emailId: str
     emailData: EmailData
     options: Dict[str, Any] = Field(default_factory=dict)
+
+
+# LangChain structured output models
+class EmailAnalysis(BaseModel):
+    """Analysis of an email for response generation."""
+    emailType: str = Field(description="Type of email: meeting_invitation, question, request, announcement, or general")
+    urgency: str = Field(description="Urgency level: low, medium, or high")
+    originalTone: Optional[str] = Field(default="professional", description="Detected tone from original email")
+    keyPoints: List[str] = Field(default_factory=list, description="Key points or important information from the email")
+    userIntent: str = Field(description="Summary of what the user wants to communicate")
+
+
+class SmartReplyOutput(BaseModel):
+    """Structured output format for smart reply generation."""
+    suggestions: List[SmartReplySuggestion] = Field(description="List of email response suggestions")
+    analysis: EmailAnalysis = Field(description="Analysis of the email and user intent")

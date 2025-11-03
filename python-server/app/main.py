@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import ai, gmail, health, history, search, tone, summary_tts
+from app.api.routes import ai, chains, gmail, health, history, search, tone, summary_tts
 from app.core.logging import configure_logging
 
 WEB_APP_DIR = Path(__file__).resolve().parent.parent.parent / "web-app"
@@ -40,6 +40,7 @@ def create_app() -> FastAPI:
     app.include_router(tone.router)
     app.include_router(history.router)
     app.include_router(summary_tts.router)
+    app.include_router(chains.router)  # Phase 2: LangChain chains
 
     # Static files (mirrors Express static serving)
     if WEB_APP_DIR.exists():

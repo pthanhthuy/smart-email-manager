@@ -8,8 +8,10 @@ from .emails import (
     SaveDraftRequest,
 )
 from .ai import (
+    EmailAnalysis,
     GenerateResponseRequest,
     GenerateResponseResponse,
+    SmartReplyOutput,
     SmartReplySuggestion,
     SummaryRequest,
 )
@@ -37,8 +39,10 @@ __all__ = [
     "EmailSearchResult",
     "EmailSummaryResponse",
     "SaveDraftRequest",
+    "EmailAnalysis",
     "GenerateResponseRequest",
     "GenerateResponseResponse",
+    "SmartReplyOutput",
     "SmartReplySuggestion",
     "SummaryRequest",
     "ToneAdjustmentRequest",

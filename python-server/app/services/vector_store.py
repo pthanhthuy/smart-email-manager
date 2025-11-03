@@ -1,5 +1,11 @@
 """
 ChromaDB vector store abstraction.
+
+Note: This implementation uses direct ChromaDB API calls with pre-computed embeddings,
+which is efficient for our use case. LangChain's Chroma integration is primarily useful
+when embeddings are generated automatically, but since we generate embeddings separately
+and store them, the direct approach is appropriate. Future enhancements could use
+LangChain's Chroma wrapper if we want to leverage LangChain's retriever interface.
 """
 
 from __future__ import annotations

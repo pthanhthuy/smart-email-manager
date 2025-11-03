@@ -50,12 +50,13 @@ class Settings(BaseSettings):
     tts_max_text_length: int = Field(default=500, alias="TTS_MAX_TEXT_LENGTH")
 
     # File system paths
+    # Note: credentials and tokens are in python-server/server/ directory
     credentials_path: Path = Field(
-        default_factory=lambda: PROJECT_ROOT / "server" / "credentials.json",
+        default_factory=lambda: PYTHON_SERVER_DIR / "server" / "credentials.json",
         alias="GMAIL_CREDENTIALS_PATH",
     )
     token_path: Path = Field(
-        default_factory=lambda: PROJECT_ROOT / "server" / "token.json",
+        default_factory=lambda: PYTHON_SERVER_DIR / "server" / "token.json",
         alias="GMAIL_TOKEN_PATH",
     )
     response_history_path: Path = Field(
