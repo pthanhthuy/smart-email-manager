@@ -99,10 +99,19 @@ def prepare_email_for_embedding(email: Dict[str, Any]) -> str:
 
 
 def extract_email_address(from_field: str) -> str:
+    """Extract email address from formats like 'Name <email@example.com>' or 'email@example.com'."""
     if not from_field:
         return ""
+    # Try to extract email from "Name <email@example.com>" format
     match = re.search(r"<(.+?)>", from_field)
-    return match.group(1) if match else from_field.strip()
+    if match:
+        return match.group(1).strip()
+    # Fallback: try to find email address pattern in the string
+    email_match = re.search(r"[\w\.-]+@[\w\.-]+\.\w+", from_field)
+    if email_match:
+        return email_match.group(0)
+    # Last resort: return stripped string
+    return from_field.strip()
 
 
 def extract_sender_name(from_field: str) -> str:

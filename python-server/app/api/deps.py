@@ -5,6 +5,7 @@ from functools import lru_cache
 from app.core.config import Settings, get_settings
 from app.services.ai_responses import AIResponseService
 from app.services.embeddings import EmbeddingService
+from app.services.email_classification import EmailClassificationService
 from app.services.history import ResponseHistoryService
 from app.services.tone import ToneAdjustmentService
 from app.services.vector_store import VectorStore
@@ -39,6 +40,11 @@ def _history_service() -> ResponseHistoryService:
     return ResponseHistoryService(get_settings())
 
 
+@lru_cache
+def _classification_service() -> EmailClassificationService:
+    return EmailClassificationService(get_settings())
+
+
 def get_embedding_service() -> EmbeddingService:
     return _embedding_service()
 
@@ -57,3 +63,7 @@ def get_tone_service() -> ToneAdjustmentService:
 
 def get_history_service() -> ResponseHistoryService:
     return _history_service()
+
+
+def get_classification_service() -> EmailClassificationService:
+    return _classification_service()

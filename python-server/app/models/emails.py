@@ -21,6 +21,12 @@ class EmailData(BaseModel):
     labels: Optional[List[str]] = None
     internalDate: Optional[str] = None
     important: Optional[bool] = None
+    category: Optional[str] = Field(
+        None, description="Email category: work, personal, promotion, etc."
+    )
+    categoryConfidence: Optional[float] = Field(
+        None, description="Classification confidence 0.0-1.0"
+    )
 
     class Config:
         populate_by_name = True
@@ -42,6 +48,12 @@ class EmailSearchResult(BaseModel):
     similarity: Optional[int] = None
     distance: Optional[float] = None
     threadId: Optional[str] = None
+    category: Optional[str] = Field(
+        None, description="Email category: work, personal, promotion, etc."
+    )
+    categoryConfidence: Optional[float] = Field(
+        None, description="Classification confidence 0.0-1.0"
+    )
 
     class Config:
         populate_by_name = True
@@ -60,3 +72,17 @@ class SaveDraftRequest(BaseModel):
     emailId: str
     responseText: str
     tone: Optional[str] = None
+
+
+class EmailClassificationRequest(BaseModel):
+    emailId: Optional[str] = None
+    emailData: Optional[Dict[str, Any]] = None
+    category: Optional[str] = None  # For manual override
+    manualOverride: Optional[bool] = False
+
+
+class EmailClassificationResponse(BaseModel):
+    category: str
+    confidence: float
+    reasoning: Optional[str] = None
+    emailId: Optional[str] = None

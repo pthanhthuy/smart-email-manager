@@ -7,6 +7,7 @@ from .ai_responses import AIResponseService
 from .tone import ToneAdjustmentService
 from .history import ResponseHistoryService
 from .emails import parse_email, prepare_email_for_embedding
+from .email_classification import EmailClassificationService
 
 __all__ = [
     "EmbeddingService",
@@ -18,4 +19,5 @@ __all__ = [
     "ResponseHistoryService",
     "parse_email",
     "prepare_email_for_embedding",
+    "EmailClassificationService",
 ]

@@ -205,6 +205,7 @@ class SmartEmailManager {
         this.setupEventListeners();
         this.testServerConnection();
         this.loadUserStats();
+        this.loadAvailableCategories(); // NEW
         this.showWelcomeMessage();
     }
 
@@ -271,6 +272,14 @@ class SmartEmailManager {
 
         // TTS test functionality
         document.getElementById('testTTSBtn').addEventListener('click', () => this.testTTS());
+
+        // Category change button handlers (delegated event listener)
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('change-category-btn')) {
+                const emailId = e.target.dataset.emailId;
+                this.showCategoryChangeDialog(emailId);
+            }
+        });
     }
 
     async performSearch() {
@@ -298,7 +307,16 @@ class SmartEmailManager {
             }
 
             const data = await response.json();
-            this.displaySearchResults(data.results || []);
+            // Ensure all emails have category data (default to 'other' if missing)
+            const results = (data.results || []).map(email => ({
+                ...email,
+                category: email.category || 'other',
+                categoryConfidence: email.categoryConfidence || 0.5
+            }));
+            this.displaySearchResults(results);
+            
+            // Update category statistics
+            this.updateCategoryStatistics(data.results || []);
             
         } catch (error) {
             console.error('Search error:', error);
@@ -374,11 +392,53 @@ class SmartEmailManager {
             const date = new Date(email.date).toLocaleDateString();
             const preview = (email.snippet || email.content || '').substring(0, 150) + ((email.snippet || email.content || '').length > 150 ? '...' : '');
             
+            // Category classification
+            const category = email.category || 'other';
+            const confidence = email.categoryConfidence || 0.5;
+            const categoryEmoji = {
+                'work': '💼',
+                'personal': '👤',
+                'promotion': '🛍️',
+                'marketing': '📢',
+                'newsletter': '📰',
+                'notification': '🔔',
+                'social': '👥',
+                'finance': '💰',
+                'spam': '🚫',
+                'other': '📧'
+            };
+            
+            // Confidence indicator
+            let confidenceBadge = '';
+            if (confidence < 0.5) {
+                confidenceBadge = '<span class="confidence-low" title="Low confidence classification">⚠️</span>';
+            } else if (confidence < 0.8) {
+                confidenceBadge = '<span class="confidence-medium" title="Medium confidence classification">ℹ️</span>';
+            }
+            
+            // Spam warning for spam emails
+            const spamWarning = category === 'spam' && confidence >= 0.7 
+                ? '<div class="spam-warning-banner">⚠️ This email has been flagged as spam</div>' 
+                : '';
+            
+            // Category badge with hover tooltip
+            const categoryDisplay = `
+                <span class="category-badge category-${category}" 
+                      title="Category: ${category} (Confidence: ${(confidence * 100).toFixed(0)}%)">
+                    ${categoryEmoji[category]} ${category.charAt(0).toUpperCase() + category.slice(1)}
+                    ${confidenceBadge}
+                </span>
+            `;
+            
             return `
-                <div class="email-item">
+                <div class="email-item ${category === 'spam' ? 'email-spam' : ''}" data-email-id="${email.id}" data-category="${category}">
+                    ${spamWarning}
                     <div class="email-header">
                         <div class="email-from">${email.from || 'Unknown'}</div>
-                        <div class="email-date">${date}</div>
+                        <div class="email-header-right">
+                            ${categoryDisplay}
+                            <div class="email-date">${date}</div>
+                        </div>
                     </div>
                     <div class="email-subject">${email.subject || 'No Subject'}</div>
                     <div class="email-preview">${preview}</div>
@@ -392,6 +452,11 @@ class SmartEmailManager {
                         <button class="action-btn btn-secondary" onclick="viewFullEmail('${email.id}')">
                             📖 View Full
                         </button>
+                        ${category === 'spam' ? '' : `
+                            <button class="action-btn btn-secondary change-category-btn" data-email-id="${email.id}" title="Change category">
+                                🏷️ Change Category
+                            </button>
+                        `}
                     </div>
                 </div>
             `;
@@ -1280,6 +1345,112 @@ class SmartEmailManager {
                 e.preventDefault();
                 this.stopReading();
                 break;
+        }
+    }
+
+    // Update category statistics display
+    updateCategoryStatistics(emails) {
+        if (!emails || emails.length === 0) {
+            const statsSection = document.getElementById('categoryStatsSection');
+            if (statsSection) {
+                statsSection.style.display = 'none';
+            }
+            return;
+        }
+        
+        // Count emails by category
+        const categoryCounts = {};
+        emails.forEach(email => {
+            const category = email.category || 'other';
+            categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+        });
+        
+        // Display statistics
+        const statsContainer = document.getElementById('categoryStats');
+        const statsSection = document.getElementById('categoryStatsSection');
+        if (!statsContainer || !statsSection) return;
+        
+        const statsHTML = Object.entries(categoryCounts)
+            .sort((a, b) => b[1] - a[1]) // Sort by count
+            .map(([category, count]) => {
+                const percentage = ((count / emails.length) * 100).toFixed(1);
+                const categoryEmoji = {
+                    'work': '💼', 'personal': '👤', 'promotion': '🛍️',
+                    'marketing': '📢', 'newsletter': '📰', 'notification': '🔔',
+                    'social': '👥', 'finance': '💰', 'spam': '🚫', 'other': '📧'
+                };
+                return `
+                    <div class="category-stat-item" data-category="${category}">
+                        <span class="category-stat-emoji">${categoryEmoji[category] || '📧'}</span>
+                        <span class="category-stat-label">${category}</span>
+                        <span class="category-stat-count">${count}</span>
+                        <span class="category-stat-percentage">${percentage}%</span>
+                    </div>
+                `;
+            }).join('');
+        
+        statsContainer.innerHTML = statsHTML;
+        statsSection.style.display = 'block';
+        
+        // Category stats are for display only, no filtering
+    }
+
+    // Handle category change (future enhancement - manual override)
+    async changeEmailCategory(emailId, newCategory) {
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/classify-email`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    emailId: emailId,
+                    category: newCategory,
+                    manualOverride: true
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to update category');
+            }
+            
+            this.showMessage('Category updated successfully!', 'success');
+            // Refresh search results
+            this.performSearch();
+        } catch (error) {
+            console.error('Category change error:', error);
+            this.showMessage(`Failed to change category: ${error.message}`, 'error');
+        }
+    }
+
+    // Show category change dialog
+    showCategoryChangeDialog(emailId) {
+        const categories = ['work', 'personal', 'promotion', 'marketing', 'newsletter', 
+                           'notification', 'social', 'finance', 'other'];
+        const categoryNames = categories.map(c => `${c.charAt(0).toUpperCase() + c.slice(1)}`);
+        const categoryList = categories.map((c, i) => `${i + 1}. ${c.charAt(0).toUpperCase() + c.slice(1)}`).join('\n');
+        
+        const selectedIndex = prompt(
+            `Change email category:\n\n${categoryList}\n\nEnter number (1-${categories.length}):`
+        );
+        
+        if (selectedIndex && parseInt(selectedIndex) >= 1 && parseInt(selectedIndex) <= categories.length) {
+            const newCategory = categories[parseInt(selectedIndex) - 1];
+            this.changeEmailCategory(emailId, newCategory);
+        }
+    }
+
+    // Load available categories from API (optional, for future use)
+    async loadAvailableCategories() {
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/categories`);
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Available categories:', data.categories);
+            }
+        } catch (error) {
+            // Silently fail - categories are shown on email cards anyway
+            console.log('Could not load categories:', error.message);
         }
     }
 }

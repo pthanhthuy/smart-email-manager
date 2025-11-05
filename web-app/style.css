@@ -1340,3 +1340,215 @@ body {
     border-radius: 8px;
     margin: 10px 0;
 }
+
+/* Category Badge Styles */
+.category-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: capitalize;
+    transition: all 0.2s ease;
+    cursor: help;
+    white-space: nowrap;
+}
+
+.category-badge:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Category Colors */
+.category-work { 
+    background: linear-gradient(135deg, #3b82f6, #2563eb); 
+    color: white; 
+}
+
+.category-personal { 
+    background: linear-gradient(135deg, #10b981, #059669); 
+    color: white; 
+}
+
+.category-promotion { 
+    background: linear-gradient(135deg, #f59e0b, #d97706); 
+    color: white; 
+}
+
+.category-marketing { 
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed); 
+    color: white; 
+}
+
+.category-newsletter { 
+    background: linear-gradient(135deg, #06b6d4, #0891b2); 
+    color: white; 
+}
+
+.category-notification { 
+    background: linear-gradient(135deg, #ef4444, #dc2626); 
+    color: white; 
+}
+
+.category-social { 
+    background: linear-gradient(135deg, #ec4899, #db2777); 
+    color: white; 
+}
+
+.category-finance { 
+    background: linear-gradient(135deg, #14b8a6, #0d9488); 
+    color: white; 
+}
+
+.category-spam { 
+    background: linear-gradient(135deg, #6b7280, #4b5563); 
+    color: white; 
+    border: 2px solid #dc2626;
+    animation: spam-pulse 2s ease-in-out infinite;
+}
+
+.category-other { 
+    background: linear-gradient(135deg, #9ca3af, #6b7280); 
+    color: white; 
+}
+
+@keyframes spam-pulse {
+    0%, 100% { border-color: #dc2626; }
+    50% { border-color: #fca5a5; }
+}
+
+/* Confidence Indicators */
+.confidence-low {
+    font-size: 0.7rem;
+    opacity: 0.8;
+    margin-left: 2px;
+}
+
+.confidence-medium {
+    font-size: 0.7rem;
+    opacity: 0.8;
+    margin-left: 2px;
+}
+
+/* Spam Warning Banner */
+.spam-warning-banner {
+    background: linear-gradient(135deg, #fee2e2, #fecaca);
+    border: 2px solid #dc2626;
+    border-radius: 8px;
+    padding: 10px 15px;
+    margin-bottom: 12px;
+    color: #991b1b;
+    font-weight: 600;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    animation: warning-shake 0.5s ease-in-out;
+}
+
+@keyframes warning-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+/* Email Item Spam Styling */
+.email-item.email-spam {
+    border-left: 4px solid #dc2626;
+    background: #fef2f2;
+}
+
+.email-item.email-spam:hover {
+    border-color: #dc2626;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+}
+
+.email-header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Category Statistics */
+.category-stats-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.category-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.category-stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.category-stat-item:hover {
+    border-color: #4f46e5;
+    background: #f8fafc;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.1);
+}
+
+.category-stat-emoji {
+    font-size: 1.5rem;
+    margin-bottom: 4px;
+}
+
+.category-stat-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #475569;
+    text-transform: capitalize;
+    margin-bottom: 4px;
+}
+
+.category-stat-count {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #4f46e5;
+}
+
+.category-stat-percentage {
+    font-size: 0.7rem;
+    color: #64748b;
+    margin-top: 2px;
+}
+
+/* Change Category Button */
+.change-category-btn {
+    font-size: 0.85rem;
+    padding: 6px 12px;
+}
+
+/* Responsive Category Styles */
+@media (max-width: 768px) {
+    .category-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .email-header-right {
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 6px;
+    }
+    
+    .category-badge {
+        font-size: 0.7rem;
+        padding: 3px 8px;
+    }
+}

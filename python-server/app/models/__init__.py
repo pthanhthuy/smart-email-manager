@@ -6,6 +6,8 @@ from .emails import (
     EmailSearchResult,
     EmailSummaryResponse,
     SaveDraftRequest,
+    EmailClassificationRequest,
+    EmailClassificationResponse,
 )
 from .ai import (
     EmailAnalysis,
@@ -39,6 +41,8 @@ __all__ = [
     "EmailSearchResult",
     "EmailSummaryResponse",
     "SaveDraftRequest",
+    "EmailClassificationRequest",
+    "EmailClassificationResponse",
     "EmailAnalysis",
     "GenerateResponseRequest",
     "GenerateResponseResponse",

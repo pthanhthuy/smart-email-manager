@@ -78,6 +78,8 @@ class VectorStore:
                 "snippet": email.get("snippet") or "",
                 "labels": ",".join(email.get("labels") or []),
                 "important": "true" if email.get("important") else "false",
+                "category": email.get("category") or "other",
+                "categoryConfidence": str(email.get("categoryConfidence") or 0.0),
             }
             for email in emails
         ]
@@ -86,11 +88,20 @@ class VectorStore:
         logger.info("Upserted %s emails into Chroma", len(ids))
         return len(ids)
 
-    def search(self, query_embedding: List[float], limit: int = 10) -> List[dict]:
+    def search(
+        self, query_embedding: List[float], limit: int = 10, category: Optional[str] = None
+    ) -> List[dict]:
         collection = self.get_collection()
+        
+        # Build where clause for category filtering
+        where_clause = None
+        if category:
+            where_clause = {"category": category}
+        
         results = collection.query(
             query_embeddings=[query_embedding],
             n_results=limit,
+            where=where_clause,
             include=["metadatas", "documents", "distances"],
         )
         matches: List[dict] = []

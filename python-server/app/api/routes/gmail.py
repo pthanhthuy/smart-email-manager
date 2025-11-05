@@ -76,8 +76,37 @@ async def save_draft(payload: SaveDraftRequest, settings: Settings = Depends(get
         return JSONResponse(status_code=400, content={"success": False, "error": "emailId and responseText are required"})
 
     try:
-        # Placeholder recipient/subject; in future fetch original email metadata
-        draft_result = create_gmail_draft("recipient@example.com", "Re: Your Email", response_text, settings=settings)
+        # Fetch original email to get metadata (recipient, subject, threadId)
+        gmail = get_gmail_service(settings)
+        original_message = gmail.users().messages().get(userId="me", id=email_id, format="full").execute()
+        parsed_email = email_utils.parse_email(original_message)
+        
+        # Extract recipient (from original email's "from" field - this becomes "to" in reply)
+        from_header = parsed_email.get("from", "")
+        recipient = email_utils.extract_email_address(from_header)
+        if not recipient:
+            recipient = from_header if from_header else "recipient@example.com"  # Fallback
+        
+        # Extract and format subject
+        original_subject = parsed_email.get("subject", "No Subject")
+        # Add "Re: " prefix if not already present
+        if original_subject and not original_subject.startswith("Re: "):
+            reply_subject = f"Re: {original_subject}"
+        else:
+            reply_subject = original_subject if original_subject else "Re: Your Email"
+        
+        # Get threadId for email threading
+        thread_id = parsed_email.get("threadId")
+        
+        # Create draft with correct metadata
+        draft_result = create_gmail_draft(
+            to=recipient,
+            subject=reply_subject,
+            body=response_text,
+            thread_id=thread_id,
+            settings=settings
+        )
+        
         return {
             "success": True,
             "message": "Draft saved to Gmail successfully!",
@@ -86,9 +115,10 @@ async def save_draft(payload: SaveDraftRequest, settings: Settings = Depends(get
                 "snippet": (response_text or "")[:100] + "...",
             },
             "metadata": {
-                "recipient": "recipient@example.com",
-                "subject": "Re: Your Email",
+                "recipient": recipient,
+                "subject": reply_subject,
                 "tone": tone,
+                "threadId": thread_id,
             },
         }
     except Exception as exc:  # pylint: disable=broad-except
