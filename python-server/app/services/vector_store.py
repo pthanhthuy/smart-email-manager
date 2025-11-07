@@ -125,6 +125,73 @@ class VectorStore:
             )
         return matches
 
+    def get_all_emails(self, category: Optional[str] = None, limit: Optional[int] = None) -> List[dict]:
+        """Get all emails from the vector store, optionally filtered by category.
+        
+        Args:
+            category: Optional category filter
+            limit: Optional limit on number of results (None = all)
+            
+        Returns:
+            List of email dictionaries with metadata and documents, sorted by date (most recent first)
+        """
+        collection = self.get_collection()
+        
+        # Build where clause for category filtering
+        where_clause = None
+        if category:
+            where_clause = {"category": category}
+        
+        # Get total count to determine limit
+        total_count = collection.count()
+        if total_count == 0:
+            return []
+        
+        # Use collection.get() to retrieve all emails (or up to limit)
+        max_results = limit if limit else total_count
+        
+        try:
+            results = collection.get(
+                where=where_clause,
+                limit=max_results,
+                include=["metadatas", "documents"],
+            )
+        except Exception as e:
+            logger.error("Error getting all emails: %s", e)
+            return []
+        
+        matches: List[dict] = []
+        ids = results.get("ids", [])
+        if not ids:
+            return matches
+        
+        metadatas = results.get("metadatas", [])
+        documents = results.get("documents", [])
+        
+        for idx, email_id in enumerate(ids):
+            metadata = metadatas[idx] if metadatas else {}
+            matches.append(
+                {
+                    "id": email_id,
+                    "metadata": metadata,
+                    "document": documents[idx] if documents else None,
+                    "distance": None,
+                    "similarity": None,
+                }
+            )
+        
+        # Sort by date (most recent first)
+        # Handle cases where date might be missing or in different formats
+        def get_sort_key(email: dict) -> str:
+            date_str = email.get("metadata", {}).get("date", "")
+            # Return empty string for missing dates (will sort last)
+            return date_str if date_str else ""
+        
+        matches.sort(key=get_sort_key, reverse=True)
+        
+        logger.info("Retrieved %s emails from vector store", len(matches))
+        return matches
+
     def stats(self) -> Dict[str, Any]:
         collection = self.get_collection()
         count = collection.count()

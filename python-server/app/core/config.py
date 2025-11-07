@@ -49,6 +49,14 @@ class Settings(BaseSettings):
     tts_cache_dir: str = Field(default="./summary_tts_cache", alias="TTS_CACHE_DIR")
     tts_max_text_length: int = Field(default=500, alias="TTS_MAX_TEXT_LENGTH")
 
+    # Redis Configuration
+    redis_host: str = Field(default="localhost", alias="REDIS_HOST")
+    redis_port: int = Field(default=6379, alias="REDIS_PORT")
+    redis_db: int = Field(default=0, alias="REDIS_DB")
+    redis_password: Optional[str] = Field(default=None, alias="REDIS_PASSWORD")
+    redis_cache_ttl: int = Field(default=3600, alias="REDIS_CACHE_TTL")  # 1 hour in seconds
+    redis_enabled: bool = Field(default=True, alias="REDIS_ENABLED")
+
     # File system paths
     # Note: credentials and tokens are in python-server/server/ directory
     credentials_path: Path = Field(
@@ -62,6 +70,10 @@ class Settings(BaseSettings):
     response_history_path: Path = Field(
         default_factory=lambda: PROJECT_ROOT / "server" / "response-history.json",
         alias="RESPONSE_HISTORY_PATH",
+    )
+    labels_storage_path: Path = Field(
+        default_factory=lambda: PYTHON_SERVER_DIR / "server" / "labels.json",
+        alias="LABELS_STORAGE_PATH",
     )
 
     model_config = SettingsConfigDict(

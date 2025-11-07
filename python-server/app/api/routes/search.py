@@ -7,7 +7,12 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
 
-from app.api.deps import get_embedding_service, get_settings_dep, get_vector_store
+from app.api.deps import (
+    get_embedding_service,
+    get_redis_cache_service,
+    get_settings_dep,
+    get_vector_store,
+)
 from app.core.config import Settings
 from app.core.logging import get_logger
 from app.models import EmailSearchRequest, EmailSearchResult
@@ -15,6 +20,7 @@ from app.services import emails as email_utils
 from app.services.email_classification import EmailClassificationService
 from app.services.embeddings import EmbeddingService
 from app.services.gmail import get_gmail_service
+from app.services.redis_cache import RedisCacheService
 from app.services.vector_store import VectorStore
 
 router = APIRouter(prefix="", tags=["search"])
@@ -64,6 +70,12 @@ async def sync_emails(
         emails_with_embeddings = await embeddings.generate_email_embeddings(emails)
         indexed = vector_store.add_emails(emails_with_embeddings)
 
+        # Invalidate cache when new emails are synced
+        cache_service = RedisCacheService(settings)
+        if settings.redis_enabled:
+            invalidated = cache_service.clear_all_cache()
+            logger.info("Invalidated %s cache entries after email sync", invalidated)
+
         return {
             "success": True,
             "indexed": indexed,
@@ -81,25 +93,96 @@ async def sync_emails(
 async def semantic_search(
     payload: EmailSearchRequest,
     category: Optional[str] = Query(None, description="Filter by category"),
+    use_cache_only: Optional[bool] = Query(False, description="Only use cache, don't search ChromaDB"),
+    force_refresh: Optional[bool] = Query(False, description="Force fresh search, skip cache check"),
     embeddings: EmbeddingService = Depends(get_embedding_service),
     vector_store: VectorStore = Depends(get_vector_store),
+    cache_service: RedisCacheService = Depends(get_redis_cache_service),
+    settings: Settings = Depends(get_settings_dep),
 ) -> dict:
-    if not payload.query and not category:
-        return JSONResponse(
-            status_code=400,
-            content={"success": False, "error": "Query or category filter is required"},
-        )
     try:
-        # Generate embedding only if query is provided
-        embedding = None
-        if payload.query:
-            embedding = await embeddings.generate_embedding(payload.query)
-        else:
-            # Use a neutral embedding when only category filter is used
-            # In practice, you might want to use a different approach for category-only searches
-            embedding = await embeddings.generate_embedding("")
+        # Normalize query for consistent cache key generation
+        normalized_query = (payload.query or "").strip()
+        
+        # If use_cache_only is True, only check cache and return if found
+        if use_cache_only and settings.redis_enabled:
+            cached_result = cache_service.get_cache(
+                query=normalized_query,
+                category=category,
+                limit=payload.limit,
+            )
+            if cached_result:
+                logger.info(
+                    "Cache-only request: Found cached result for query: '%s' (category=%s, limit=%s)",
+                    normalized_query[:50] if normalized_query else "all",
+                    category,
+                    payload.limit,
+                )
+                cached_result["cached"] = True
+                return cached_result
+            else:
+                # Cache-only mode but no cache found
+                logger.warning(
+                    "Cache-only request: No cache found for query: '%s' (category=%s, limit=%s)",
+                    normalized_query[:50] if normalized_query else "all",
+                    category,
+                    payload.limit,
+                )
+                return JSONResponse(
+                    status_code=404,
+                    content={
+                        "success": False,
+                        "error": "No cached results found. Please perform a search first.",
+                        "cached": False,
+                    },
+                )
+        
+        # Check Redis cache first (if enabled and not forcing refresh)
+        if settings.redis_enabled and not force_refresh:
+            cached_result = cache_service.get_cache(
+                query=normalized_query,
+                category=category,
+                limit=payload.limit,
+            )
+            if cached_result:
+                logger.info(
+                    "Cache hit for query: '%s' (category=%s, limit=%s)",
+                    normalized_query[:50] if normalized_query else "all",
+                    category,
+                    payload.limit,
+                )
+                # Return cached result but mark it as cached
+                cached_result["cached"] = True
+                return cached_result
 
-        results = vector_store.search(embedding, limit=payload.limit, category=category)
+        # Cache miss or force refresh - perform fresh search
+        logger.info(
+            "Performing fresh search for: '%s' (category=%s, limit=%s, force_refresh=%s)",
+            normalized_query[:50] if normalized_query else "all",
+            category,
+            payload.limit,
+            force_refresh,
+        )
+
+        # If no query provided, get all emails (sorted by date)
+        if not normalized_query:
+            logger.info(
+                "Empty query provided, retrieving all emails (category=%s, limit=%s)", category, payload.limit
+            )
+            results = vector_store.get_all_emails(category=category, limit=payload.limit)
+        else:
+            # Generate embedding for semantic search
+            logger.info(
+                "Performing semantic search with query: '%s' (category=%s, limit=%s)",
+                normalized_query,
+                category,
+                payload.limit,
+            )
+            embedding = await embeddings.generate_embedding(normalized_query)
+            # Use default limit of 10 if not specified for search
+            search_limit = payload.limit if payload.limit else 10
+            results = vector_store.search(embedding, limit=search_limit, category=category)
+
         formatted: List[EmailSearchResult] = []
         for index, result in enumerate(results):
             metadata = result.get("metadata", {})
@@ -134,17 +217,88 @@ async def semantic_search(
                     threadId=metadata.get("threadId"),
                     category=email_category,
                     categoryConfidence=category_confidence,
+                    labels=metadata.get("labels"),  # Include labels from metadata
                 )
             )
-        return {
+
+        # Prepare response
+        query_display = normalized_query if normalized_query else "all"
+        results_dict = [item.dict(by_alias=True) for item in formatted]
+        
+        response_data = {
             "success": True,
-            "query": payload.query,
+            "query": query_display,
             "count": len(formatted),
-            "results": [item.dict(by_alias=True) for item in formatted],
+            "results": results_dict,
+            "cached": False,
         }
+
+        # Always update cache with fresh results (if Redis is enabled)
+        # This ensures cache is updated every time a search is performed
+        # Use normalized_query to ensure cache key matches what we checked
+        if settings.redis_enabled:
+            cache_updated = cache_service.set_cache(
+                query=normalized_query,
+                results=results_dict,
+                category=category,
+                limit=payload.limit,
+            )
+            if cache_updated:
+                logger.info("Cache updated with %s results for query: '%s'", len(formatted), query_display)
+            else:
+                logger.warning("Failed to update cache for query: '%s'", query_display)
+
+        logger.info("Returning %s results for query: %s", len(formatted), query_display)
+        return response_data
     except Exception as exc:  # pylint: disable=broad-except
         logger.error("Search error: %s", exc)
         return JSONResponse(
             status_code=500,
             content={"success": False, "error": str(exc), "hint": "Make sure you have run /sync first to index emails"},
+        )
+
+
+@router.post("/cache/clear")
+async def clear_cache(
+    settings: Settings = Depends(get_settings_dep),
+    cache_service: RedisCacheService = Depends(get_redis_cache_service),
+) -> dict:
+    """Clear all search caches."""
+    try:
+        if not settings.redis_enabled:
+            return {
+                "success": False,
+                "message": "Redis caching is disabled",
+            }
+        deleted = cache_service.clear_all_cache()
+        return {
+            "success": True,
+            "message": f"Cleared cache (deleted entries: {deleted})",
+            "deletedEntries": deleted,
+        }
+    except Exception as exc:
+        logger.error("Cache clear error: %s", exc)
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": str(exc)},
+        )
+
+
+@router.get("/cache/stats")
+async def get_cache_stats(
+    settings: Settings = Depends(get_settings_dep),
+    cache_service: RedisCacheService = Depends(get_redis_cache_service),
+) -> dict:
+    """Get cache statistics."""
+    try:
+        stats = cache_service.get_cache_stats()
+        return {
+            "success": True,
+            "stats": stats,
+        }
+    except Exception as exc:
+        logger.error("Cache stats error: %s", exc)
+        return JSONResponse(
+            status_code=500,
+            content={"success": False, "error": str(exc)},
         )

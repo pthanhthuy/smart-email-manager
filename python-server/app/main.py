@@ -15,6 +15,7 @@ from app.api.routes import (
     gmail,
     health,
     history,
+    labels,
     search,
     summary_tts,
     tone,
@@ -52,6 +53,7 @@ def create_app() -> FastAPI:
     app.include_router(summary_tts.router)
     app.include_router(chains.router)  # Phase 2: LangChain chains
     app.include_router(classification.router)  # Email classification
+    app.include_router(labels.router)  # Phase 2: Dynamic email labeling
 
     # Static files (mirrors Express static serving)
     if WEB_APP_DIR.exists():

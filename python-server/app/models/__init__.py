@@ -1,6 +1,7 @@
 """Pydantic models used across the Smart Email Manager API."""
 
 from .emails import (
+    ApplyLabelRequest,
     EmailData,
     EmailSearchRequest,
     EmailSearchResult,
@@ -8,6 +9,10 @@ from .emails import (
     SaveDraftRequest,
     EmailClassificationRequest,
     EmailClassificationResponse,
+    LabelCreateRequest,
+    LabelResponse,
+    LabelUpdateRequest,
+    RemoveLabelRequest,
 )
 from .ai import (
     EmailAnalysis,
@@ -36,6 +41,7 @@ from .history import (
 )
 
 __all__ = [
+    "ApplyLabelRequest",
     "EmailData",
     "EmailSearchRequest",
     "EmailSearchResult",
@@ -43,6 +49,10 @@ __all__ = [
     "SaveDraftRequest",
     "EmailClassificationRequest",
     "EmailClassificationResponse",
+    "LabelCreateRequest",
+    "LabelResponse",
+    "LabelUpdateRequest",
+    "RemoveLabelRequest",
     "EmailAnalysis",
     "GenerateResponseRequest",
     "GenerateResponseResponse",

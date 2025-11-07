@@ -206,7 +206,128 @@ class SmartEmailManager {
         this.testServerConnection();
         this.loadUserStats();
         this.loadAvailableCategories(); // NEW
+        this.loadAllLabels(); // Phase 2: Load all labels
+        this.loadAllEmails(); // Phase 2: Auto-load all emails on page access
         this.showWelcomeMessage();
+    }
+    
+    // Phase 2: Load all emails automatically on page access
+    // Phase 5: Added performance optimization for large lists
+    async loadAllEmails() {
+        try {
+            this.showLoading(true, 'Loading all emails...');
+            
+            const startTime = performance.now();
+            const response = await fetch(`${this.apiBaseUrl}/search`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    query: '',  // Empty query = get all emails
+                    limit: null // No limit = get all
+                })
+            });
+            
+            const loadTime = performance.now() - startTime;
+            console.log(`Email load time: ${loadTime.toFixed(2)}ms`);
+
+            if (!response.ok) {
+                throw new Error(`Failed to load emails: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            const results = (data.results || []).map(email => ({
+                ...email,
+                category: email.category || 'other',
+                categoryConfidence: email.categoryConfidence || 0.5
+            }));
+            
+            if (results.length > 0) {
+                // Phase 5: Performance optimization - use requestAnimationFrame for large lists
+                if (results.length > 100) {
+                    this.showMessage(`Loading ${results.length} emails...`, 'info', 1000);
+                    // Use requestAnimationFrame to prevent blocking
+                    requestAnimationFrame(() => {
+                        this.displaySearchResults(results);
+                        this.updateCategoryStatistics(results);
+                        this.showMessage(`Loaded ${results.length} emails`, 'success', 2000);
+                    });
+                } else {
+                    this.displaySearchResults(results);
+                    this.updateCategoryStatistics(results);
+                    this.showMessage(`Loaded ${results.length} emails`, 'success', 2000);
+                }
+            } else {
+                this.showEmptyState();
+                this.showMessage('No emails found. Sync emails first!', 'info', 3000);
+            }
+        } catch (error) {
+            console.error('Error loading all emails:', error);
+            // Don't show error on initial load - might be expected if no emails synced yet
+            if (error.message.includes('Failed to fetch')) {
+                console.warn('Server not available or no emails synced yet');
+            }
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+    async loadAllEmailsFromCache() {
+        // "Show All Emails" button - only use Redis cache, don't search ChromaDB
+        this.showLoading(true, 'Loading emails from cache...');
+        this.hideEmptyState();
+        this.hideAIResponsePanel();
+
+        try {
+            // Build URL with use_cache_only=true to only use Redis cache
+            const url = new URL(`${this.apiBaseUrl}/search`);
+            url.searchParams.set('use_cache_only', 'true');
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    query: '',  // Empty query = get all emails
+                    limit: null  // No limit = get all
+                })
+            });
+
+            if (!response.ok) {
+                if (response.status === 404) {
+                    // No cache found - show helpful message
+                    this.showMessage('No cached emails found. Please click Search first to load emails.', 'info', 4000);
+                    return;
+                }
+                throw new Error(`Failed to load from cache: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            // Ensure all emails have category data (default to 'other' if missing)
+            const results = (data.results || []).map(email => ({
+                ...email,
+                category: email.category || 'other',
+                categoryConfidence: email.categoryConfidence || 0.5
+            }));
+            
+            this.currentEmailList = results;
+            this.displaySearchResults(results);
+            
+            // Update category statistics
+            this.updateCategoryStatistics(results);
+            
+            // Show message indicating cache was used
+            this.showMessage(`Loaded ${results.length} email${results.length !== 1 ? 's' : ''} from cache`, 'info', 2000);
+            
+        } catch (error) {
+            console.error('Cache load error:', error);
+            this.showMessage(`Failed to load from cache: ${error.message}`, 'error');
+            this.showEmptyState();
+        } finally {
+            this.showLoading(false);
+        }
     }
 
     setupEventListeners() {
@@ -221,15 +342,7 @@ class SmartEmailManager {
             }
         });
 
-        // Tone selector
-        const toneButtons = document.querySelectorAll('.tone-btn');
-        toneButtons.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                toneButtons.forEach(b => b.classList.remove('active'));
-                e.target.classList.add('active');
-                this.currentTone = e.target.dataset.tone;
-            });
-        });
+        // Tone selector - removed from main UI, now only in modal
 
         // RAG mode toggle
         const ragToggle = document.getElementById('ragModeToggle');
@@ -255,23 +368,41 @@ class SmartEmailManager {
         const syncBtn = document.getElementById('syncBtn');
         syncBtn.addEventListener('click', () => this.syncEmails());
 
-        // AI Response actions
-        document.getElementById('saveDraftBtn').addEventListener('click', () => this.saveDraft());
-        document.getElementById('editResponseBtn').addEventListener('click', () => this.editResponse());
-        document.getElementById('generateNewBtn').addEventListener('click', () => this.generateNewResponse());
+        // AI Response actions (Phase 4: Legacy - now handled in modal)
+        // Keep for backward compatibility but they redirect to modal
+        const saveDraftBtn = document.getElementById('saveDraftBtn');
+        const editResponseBtn = document.getElementById('editResponseBtn');
+        const generateNewBtn = document.getElementById('generateNewBtn');
+        
+        if (saveDraftBtn) {
+            saveDraftBtn.addEventListener('click', () => this.saveDraft());
+        }
+        if (editResponseBtn) {
+            editResponseBtn.addEventListener('click', () => this.editResponse());
+        }
+        if (generateNewBtn) {
+            generateNewBtn.addEventListener('click', () => this.generateNewResponse());
+        }
 
-        // History functionality
-        document.getElementById('loadHistoryBtn').addEventListener('click', () => this.loadResponseHistory());
-        document.getElementById('clearHistoryBtn').addEventListener('click', () => this.clearResponseHistory());
+        // History functionality - removed from main UI
+        // const loadHistoryBtn = document.getElementById('loadHistoryBtn');
+        // const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+        // if (loadHistoryBtn) loadHistoryBtn.addEventListener('click', () => this.loadResponseHistory());
+        // if (clearHistoryBtn) clearHistoryBtn.addEventListener('click', () => this.clearResponseHistory());
 
         // Tone analysis functionality
-        document.getElementById('analyzeToneBtn').addEventListener('click', () => this.analyzeTone());
+        // Tone analysis removed from main UI (now available in modal if needed)
+        // const analyzeToneBtn = document.getElementById('analyzeToneBtn');
+        // if (analyzeToneBtn) {
+        //     analyzeToneBtn.addEventListener('click', () => this.analyzeTone());
+        // }
 
         // Keyboard shortcuts for TTS
         document.addEventListener('keydown', (e) => this.handleTTSKeyboardShortcuts(e));
 
-        // TTS test functionality
-        document.getElementById('testTTSBtn').addEventListener('click', () => this.testTTS());
+        // TTS test functionality - removed from main UI
+        // const testTTSBtn = document.getElementById('testTTSBtn');
+        // if (testTTSBtn) testTTSBtn.addEventListener('click', () => this.testTTS());
 
         // Category change button handlers (delegated event listener)
         document.addEventListener('click', (e) => {
@@ -280,26 +411,96 @@ class SmartEmailManager {
                 this.showCategoryChangeDialog(emailId);
             }
         });
+
+        // Label management event listeners
+        const createLabelBtn = document.getElementById('createLabelBtn');
+        if (createLabelBtn) {
+            createLabelBtn.addEventListener('click', () => this.showLabelModal());
+        }
+
+        const labelModalClose = document.getElementById('labelModalClose');
+        const labelCancelBtn = document.getElementById('labelCancelBtn');
+        if (labelModalClose) {
+            labelModalClose.addEventListener('click', () => this.hideLabelModal());
+        }
+        if (labelCancelBtn) {
+            labelCancelBtn.addEventListener('click', () => this.hideLabelModal());
+        }
+
+        // Close label modal on overlay click
+        const labelModal = document.getElementById('labelModal');
+        if (labelModal && !labelModal.hasAttribute('data-listener-added')) {
+            labelModal.addEventListener('click', (e) => {
+                if (e.target === labelModal) {
+                    this.hideLabelModal();
+                }
+            });
+            labelModal.setAttribute('data-listener-added', 'true');
+        }
+
+        const labelForm = document.getElementById('labelForm');
+        if (labelForm) {
+            labelForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.createLabel();
+            });
+        }
+
+        // Label color picker sync
+        const labelColor = document.getElementById('labelColor');
+        const labelColorText = document.getElementById('labelColorText');
+        if (labelColor && labelColorText) {
+            labelColor.addEventListener('input', (e) => {
+                labelColorText.value = e.target.value;
+            });
+            labelColorText.addEventListener('input', (e) => {
+                if (/^#[0-9A-F]{6}$/i.test(e.target.value)) {
+                    labelColor.value = e.target.value;
+                }
+            });
+        }
+
+        // Delegated event listeners for label actions
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('apply-label-btn')) {
+                const labelId = e.target.dataset.labelId;
+                this.autoApplyLabel(labelId);
+            }
+            if (e.target.classList.contains('delete-label-btn')) {
+                const labelId = e.target.dataset.labelId;
+                this.deleteLabel(labelId);
+            }
+        });
+
+        // "Show All Emails" button - loads from cache only
+        const showAllBtn = document.getElementById('showAllEmailsBtn');
+        if (showAllBtn) {
+            showAllBtn.addEventListener('click', () => this.loadAllEmailsFromCache());
+        }
     }
 
     async performSearch() {
         const query = document.getElementById('searchInput').value.trim();
-        if (!query) {
-            this.showMessage('Please enter a search term', 'error');
-            return;
-        }
 
-        this.showLoading(true, 'Searching emails...');
+        // Search button always performs fresh search from ChromaDB and updates Redis
+        this.showLoading(true, query ? 'Searching emails...' : 'Loading all emails...');
         this.hideEmptyState();
         this.hideAIResponsePanel();
 
         try {
-            const response = await fetch(`${this.apiBaseUrl}/search`, {
+            // Build URL with force_refresh=true to always search ChromaDB
+            const url = new URL(`${this.apiBaseUrl}/search`);
+            url.searchParams.set('force_refresh', 'true');
+
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ query })
+                body: JSON.stringify({ 
+                    query: query || '',  // Empty query = get all emails
+                    limit: null  // No limit = get all
+                })
             });
 
             if (!response.ok) {
@@ -313,10 +514,19 @@ class SmartEmailManager {
                 category: email.category || 'other',
                 categoryConfidence: email.categoryConfidence || 0.5
             }));
+            
+            this.currentEmailList = results;
             this.displaySearchResults(results);
             
             // Update category statistics
             this.updateCategoryStatistics(data.results || []);
+            
+            // Search button always does fresh search, so show success message
+            if (query) {
+                this.showMessage(`Found ${results.length} email${results.length !== 1 ? 's' : ''} for "${query}"`, 'success', 3000);
+            } else {
+                this.showMessage(`Loaded ${results.length} email${results.length !== 1 ? 's' : ''} from ChromaDB`, 'success', 2000);
+            }
             
         } catch (error) {
             console.error('Search error:', error);
@@ -337,6 +547,9 @@ class SmartEmailManager {
     }
 
     displaySearchResults(emails) {
+        // Store current email list for filtering
+        this.currentEmailList = emails;
+        
         const resultsContainer = document.getElementById('emailResults');
         const resultsCount = document.getElementById('resultsCount');
         const resultsNumber = document.getElementById('resultsNumber');
@@ -356,29 +569,35 @@ class SmartEmailManager {
             // Show results count
             this.showResultsCount(emails.length);
             
-            const htmlContent = emails.map(email => this.createEmailItem(email)).join('');
+            // Store emails for modal access
+            this.currentEmailList = emails;
+            
+            // Create Gmail-like email rows
+            const htmlContent = emails.map(email => this.createEmailRow(email)).join('');
             resultsContainer.innerHTML = htmlContent;
             
-            // Add scroll indicator if there are more than 3 emails
-            if (emails.length > 3) {
-                this.addScrollIndicator();
-            }
-            
-            // Add event listeners to generate response buttons
-            document.querySelectorAll('.generate-response-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const emailId = e.target.dataset.emailId;
+            // Add click listeners to email rows (for modal)
+            // Phase 5: Also support keyboard navigation
+            document.querySelectorAll('.email-row').forEach(row => {
+                const handleOpen = (e) => {
+                    // Don't trigger if clicking on category badge
+                    if (e.target.closest('.category-badge')) {
+                        return;
+                    }
+                    const emailId = row.dataset.emailId;
                     const email = emails.find(e => e.id === emailId);
-                    this.generateAIResponse(email);
-                });
-            });
-
-            // Add event listeners to summarize buttons
-            document.querySelectorAll('.summarize-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const emailId = e.target.dataset.emailId;
-                    const email = emails.find(e => e.id === emailId);
-                    this.summarizeEmail(email);
+                    if (email) {
+                        this.showEmailModal(email);
+                    }
+                };
+                
+                row.addEventListener('click', handleOpen);
+                // Phase 5: Keyboard support (Enter and Space)
+                row.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleOpen(e);
+                    }
                 });
             });
         } catch (error) {
@@ -387,162 +606,339 @@ class SmartEmailManager {
         }
     }
 
-    createEmailItem(email) {
+    createEmailRow(email) {
         try {
-            const date = new Date(email.date).toLocaleDateString();
-            const preview = (email.snippet || email.content || '').substring(0, 150) + ((email.snippet || email.content || '').length > 150 ? '...' : '');
+            // Format date - show relative time if recent, otherwise absolute date
+            const emailDate = new Date(email.date);
+            const now = new Date();
+            const diffMs = now - emailDate;
+            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
             
-            // Category classification
-            const category = email.category || 'other';
-            const confidence = email.categoryConfidence || 0.5;
-            const categoryEmoji = {
-                'work': '💼',
-                'personal': '👤',
-                'promotion': '🛍️',
-                'marketing': '📢',
-                'newsletter': '📰',
-                'notification': '🔔',
-                'social': '👥',
-                'finance': '💰',
-                'spam': '🚫',
-                'other': '📧'
-            };
-            
-            // Confidence indicator
-            let confidenceBadge = '';
-            if (confidence < 0.5) {
-                confidenceBadge = '<span class="confidence-low" title="Low confidence classification">⚠️</span>';
-            } else if (confidence < 0.8) {
-                confidenceBadge = '<span class="confidence-medium" title="Medium confidence classification">ℹ️</span>';
+            let dateDisplay = '';
+            if (diffDays === 0) {
+                // Today - show time
+                dateDisplay = emailDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+            } else if (diffDays === 1) {
+                dateDisplay = 'Yesterday';
+            } else if (diffDays < 7) {
+                dateDisplay = emailDate.toLocaleDateString('en-US', { weekday: 'short' });
+            } else if (diffDays < 365) {
+                dateDisplay = emailDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            } else {
+                dateDisplay = emailDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
             }
             
-            // Spam warning for spam emails
-            const spamWarning = category === 'spam' && confidence >= 0.7 
-                ? '<div class="spam-warning-banner">⚠️ This email has been flagged as spam</div>' 
-                : '';
+            // Extract sender name from email address
+            const fromAddress = email.from || 'Unknown';
+            const senderName = fromAddress.includes('<') 
+                ? fromAddress.split('<')[0].trim() 
+                : fromAddress.split('@')[0];
+            const senderDisplay = senderName.length > 30 ? senderName.substring(0, 30) + '...' : senderName;
             
-            // Category badge with hover tooltip
-            const categoryDisplay = `
-                <span class="category-badge category-${category}" 
-                      title="Category: ${category} (Confidence: ${(confidence * 100).toFixed(0)}%)">
-                    ${categoryEmoji[category]} ${category.charAt(0).toUpperCase() + category.slice(1)}
-                    ${confidenceBadge}
+            // Subject and snippet - show more content
+            const subject = email.subject || 'No Subject';
+            const subjectDisplay = subject.length > 100 ? subject.substring(0, 100) + '...' : subject;
+            
+            // Get more content from email body or snippet
+            const emailBody = email.body || email.snippet || '';
+            const emailContent = emailBody.trim();
+            
+            // Show more content - up to 200 characters, with smart truncation
+            let snippetDisplay = '';
+            if (emailContent.length > 0) {
+                // Remove extra whitespace and newlines
+                const cleanContent = emailContent.replace(/\s+/g, ' ').trim();
+                snippetDisplay = cleanContent.length > 200 ? cleanContent.substring(0, 200) + '...' : cleanContent;
+            } else {
+                snippetDisplay = 'No preview available';
+            }
+            
+            // Category classification - use improved tags with descriptions
+            const category = email.category || 'other';
+            const confidence = email.categoryConfidence || 0.5;
+            const def = this.getCategoryDefinition(category);
+            
+            // Category badge - now shows text tag instead of just icon
+            const categoryBadge = `
+                <span class="email-type-tag category-${category}" 
+                      style="background-color: ${def.color}; color: white; border: 1px solid ${def.color};"
+                      title="${def.description}">
+                    ${def.name}
                 </span>
             `;
             
+            // Get labels for this email
+            const emailLabels = this.getEmailLabels(email);
+            const labelsHTML = this.formatLabelsHTML(emailLabels);
+            
+            // Mark as unread/bold if needed (you can add logic here)
+            const isUnread = false; // TODO: Add unread tracking
+            
+            // Phase 5: Accessibility improvements
             return `
-                <div class="email-item ${category === 'spam' ? 'email-spam' : ''}" data-email-id="${email.id}" data-category="${category}">
-                    ${spamWarning}
-                    <div class="email-header">
-                        <div class="email-from">${email.from || 'Unknown'}</div>
-                        <div class="email-header-right">
-                            ${categoryDisplay}
-                            <div class="email-date">${date}</div>
+                <div class="email-row ${isUnread ? 'email-unread' : ''}" 
+                     data-email-id="${email.id}" 
+                     data-category="${category}"
+                     title="Click to view full email"
+                     role="button"
+                     tabindex="0"
+                     aria-label="Email from ${senderDisplay}, subject: ${subjectDisplay}"
+                     aria-describedby="email-snippet-${email.id}">
+                    <div class="email-row-from-col">
+                        <div class="email-row-category-tag">${categoryBadge}</div>
+                        ${labelsHTML ? `<div class="email-row-labels">${labelsHTML}</div>` : ''}
+                        <div class="email-row-from">${senderDisplay}</div>
                         </div>
+                    <div class="email-row-content">
+                        <div class="email-row-subject">${subjectDisplay}</div>
+                        <div class="email-row-snippet" 
+                             id="email-snippet-${email.id}"
+                             title="${emailContent.length > 200 ? emailContent : ''}">${snippetDisplay}</div>
                     </div>
-                    <div class="email-subject">${email.subject || 'No Subject'}</div>
-                    <div class="email-preview">${preview}</div>
-                    <div class="email-actions">
-                        <button class="action-btn btn-primary generate-response-btn" data-email-id="${email.id}">
-                            🤖 Generate Response
-                        </button>
-                        <button class="action-btn btn-info summarize-btn" data-email-id="${email.id}">
-                            📝 Summarize
-                        </button>
-                        <button class="action-btn btn-secondary" onclick="viewFullEmail('${email.id}')">
-                            📖 View Full
-                        </button>
-                        ${category === 'spam' ? '' : `
-                            <button class="action-btn btn-secondary change-category-btn" data-email-id="${email.id}" title="Change category">
-                                🏷️ Change Category
-                            </button>
-                        `}
-                    </div>
+                    <div class="email-row-date">${dateDisplay}</div>
                 </div>
             `;
         } catch (error) {
-            console.error('Error creating email item:', error);
+            console.error('Error creating email row:', error);
             return `
-                <div class="email-item">
-                    <div class="email-header">
-                        <div class="email-from">Error displaying email</div>
-                        <div class="email-date">Error</div>
+                <div class="email-row">
+                    <div class="email-row-from">Error</div>
+                    <div class="email-row-content">
+                        <div class="email-row-subject">Failed to display email</div>
+                        <div class="email-row-snippet">${error.message}</div>
                     </div>
-                    <div class="email-subject">Error: ${error.message}</div>
-                    <div class="email-preview">Failed to display email content</div>
+                    <div class="email-row-date">-</div>
                 </div>
             `;
         }
     }
 
-    async generateAIResponse(email) {
+    // Keep old method for backward compatibility (will be removed in Phase 3)
+    createEmailItem(email) {
+        return this.createEmailRow(email);
+    }
+    
+    // Phase 3: Email Detail Modal
+    showEmailModal(email) {
         this.selectedEmail = email;
-        const useRAG = this.useRAG;
-        const loadingMessage = useRAG 
-            ? 'Generating AI response with context from similar emails...' 
-            : 'Generating AI response...';
-        this.showLoading(true, loadingMessage);
-
-        // Get user instruction from the input field
-        const instructionInput = document.getElementById('responseInstruction');
-        const userInstruction = instructionInput.value.trim() || 'Generate a helpful response';
-
-        try {
-            // Choose endpoint based on RAG mode
-            const endpoint = useRAG 
-                ? `${this.apiBaseUrl}/chains/rag-response` 
-                : `${this.apiBaseUrl}/generate-response`;
-            
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    emailData: email,
-                    userInstruction: userInstruction,
-                    options: {
-                        tone: this.currentTone,
-                        contextEmailsLimit: useRAG ? 3 : undefined // Use context when RAG is enabled
-                    }
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error(`AI response generation failed: ${response.statusText}`);
-            }
-
-            const data = await response.json();
-            
-            // Display response with RAG context info if available
-            this.displayAIResponse(data.suggestions || [], data.analysis || {});
-            
-            // Show RAG context info if used
-            if (useRAG && data.metadata && data.metadata.contextEmailsUsed > 0) {
-                this.showMessage(
-                    `✅ Used ${data.metadata.contextEmailsUsed} similar emails as context for better response quality`,
-                    'success',
-                    3000
-                );
-            }
-            
-            // Clear the instruction field after successful generation
-            const instructionInput = document.getElementById('responseInstruction');
-            instructionInput.value = '';
-            
-        } catch (error) {
-            console.error('AI response error:', error);
-            this.showMessage(`AI response failed: ${error.message}`, 'error');
-            
-            // Fallback to regular endpoint if RAG fails
-            if (useRAG) {
-                console.log('RAG failed, falling back to regular response generation');
-                this.useRAG = false;
-                return this.generateAIResponse(email);
-            }
-        } finally {
-            this.showLoading(false);
+        const modal = document.getElementById('emailModal');
+        if (!modal) {
+            console.error('Email modal not found');
+            return;
         }
+
+        // Phase 5: Accessibility - Set ARIA attributes
+        modal.setAttribute('aria-hidden', 'false');
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('aria-labelledby', 'modalSubject');
+        modal.setAttribute('aria-modal', 'true');
+
+        // Populate email headers
+        const fromAddress = email.from || 'Unknown';
+        const toAddress = email.to || 'You';
+        const subject = email.subject || 'No Subject';
+        const emailDate = new Date(email.date);
+        const formattedDate = emailDate.toLocaleString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit'
+        });
+
+        document.getElementById('modalFrom').textContent = fromAddress;
+        document.getElementById('modalTo').textContent = toAddress;
+        const subjectElement = document.getElementById('modalSubject');
+        subjectElement.textContent = subject;
+        subjectElement.id = 'modalSubject'; // Ensure ID exists for ARIA
+        document.getElementById('modalDate').textContent = formattedDate;
+
+        // Populate email body - Phase 5: Sanitize HTML to prevent XSS
+        const emailBody = email.body || email.snippet || 'No content available';
+        const bodyElement = document.getElementById('modalBody');
+        // Preserve line breaks and format text, but escape HTML to prevent XSS
+        const safeBody = this.sanitizeHTML(emailBody);
+        bodyElement.innerHTML = safeBody.replace(/\n/g, '<br>').replace(/\r/g, '');
+
+        // Hide results section initially
+        document.getElementById('modalResults').style.display = 'none';
+        document.getElementById('modalSaveDraftBtn').style.display = 'none';
+        
+        // Phase 5: Clear and sync instruction input in modal
+        const modalInstructionInput = document.getElementById('modalResponseInstruction');
+        const modalRagToggle = document.getElementById('modalRagModeToggle');
+        
+        if (modalInstructionInput) {
+            modalInstructionInput.value = '';
+        }
+        
+        // Set default tone in modal (professional)
+        const toneButtonsModal = document.querySelectorAll('.tone-btn-modal');
+        toneButtonsModal.forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.tone === this.currentTone || btn.dataset.tone === 'professional') {
+                btn.classList.add('active');
+                this.currentTone = btn.dataset.tone;
+            }
+        });
+        
+        // Set RAG toggle state
+        if (modalRagToggle) {
+            modalRagToggle.checked = this.useRAG;
+        }
+
+        // Show modal
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden'; // Prevent background scrolling
+
+        // Phase 5: Focus management for accessibility
+        const closeBtn = document.getElementById('emailModalClose');
+        if (closeBtn) {
+            setTimeout(() => closeBtn.focus(), 100);
+        }
+
+        // Setup event listeners (if not already set up)
+        this.setupModalEventListeners();
+    }
+
+    hideEmailModal() {
+        const modal = document.getElementById('emailModal');
+        if (modal) {
+            modal.style.display = 'none';
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = ''; // Restore scrolling
+            
+            // Phase 5: Return focus to email row that opened modal
+            const activeRow = document.querySelector('.email-row[data-email-id="' + (this.selectedEmail?.id || '') + '"]');
+            if (activeRow) {
+                activeRow.focus();
+            }
+        }
+    }
+
+    // Phase 5: Basic HTML sanitization to prevent XSS
+    sanitizeHTML(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    setupModalEventListeners() {
+        // Close button
+        const closeBtn = document.getElementById('emailModalClose');
+        if (closeBtn && !closeBtn.hasAttribute('data-listener-added')) {
+            closeBtn.addEventListener('click', () => this.hideEmailModal());
+            closeBtn.setAttribute('data-listener-added', 'true');
+        }
+
+        // Close on overlay click
+        const modal = document.getElementById('emailModal');
+        if (modal && !modal.hasAttribute('data-listener-added')) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    this.hideEmailModal();
+                }
+            });
+            modal.setAttribute('data-listener-added', 'true');
+        }
+
+        // ESC key to close
+        if (!this.modalEscListener) {
+            this.modalEscListener = (e) => {
+                if (e.key === 'Escape') {
+                    const emailModal = document.getElementById('emailModal');
+                    const labelModal = document.getElementById('labelModal');
+                    if (emailModal && emailModal.style.display !== 'none') {
+                        this.hideEmailModal();
+                    } else if (labelModal && labelModal.style.display !== 'none') {
+                        this.hideLabelModal();
+                    }
+                }
+            };
+            document.addEventListener('keydown', this.modalEscListener);
+        }
+
+        // Modal action buttons
+        const summarizeBtn = document.getElementById('modalSummarizeBtn');
+        if (summarizeBtn && !summarizeBtn.hasAttribute('data-listener-added')) {
+            summarizeBtn.addEventListener('click', () => {
+                if (this.selectedEmail) {
+                    this.summarizeEmailInModal(this.selectedEmail);
+                }
+            });
+            summarizeBtn.setAttribute('data-listener-added', 'true');
+        }
+
+        const responseBtn = document.getElementById('modalResponseBtn');
+        if (responseBtn && !responseBtn.hasAttribute('data-listener-added')) {
+            responseBtn.addEventListener('click', () => {
+                if (this.selectedEmail) {
+                    this.generateResponseInModal(this.selectedEmail);
+                }
+            });
+            responseBtn.setAttribute('data-listener-added', 'true');
+        }
+
+        const saveDraftBtn = document.getElementById('modalSaveDraftBtn');
+        if (saveDraftBtn && !saveDraftBtn.hasAttribute('data-listener-added')) {
+            saveDraftBtn.addEventListener('click', () => {
+                this.saveDraftFromModal();
+            });
+            saveDraftBtn.setAttribute('data-listener-added', 'true');
+        }
+
+        // Phase 5: Quick instruction buttons in modal
+        const quickButtons = document.querySelectorAll('.quick-btn-modal');
+        quickButtons.forEach(btn => {
+            if (!btn.hasAttribute('data-listener-added')) {
+                btn.addEventListener('click', (e) => {
+                    const instruction = e.target.dataset.instruction;
+                    const instructionInput = document.getElementById('modalResponseInstruction');
+                    if (instructionInput) {
+                        instructionInput.value = instruction;
+                        instructionInput.focus();
+                    }
+                });
+                btn.setAttribute('data-listener-added', 'true');
+            }
+        });
+
+        // Phase 5: Tone selector in modal
+        const toneButtonsModal = document.querySelectorAll('.tone-btn-modal');
+        toneButtonsModal.forEach(btn => {
+            if (!btn.hasAttribute('data-listener-added')) {
+                btn.addEventListener('click', () => {
+                    toneButtonsModal.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    this.currentTone = btn.dataset.tone;
+                    console.log(`Tone changed to: ${this.currentTone}`);
+                });
+                btn.setAttribute('data-listener-added', 'true');
+            }
+        });
+
+        // Phase 5: RAG mode toggle in modal
+        const modalRagToggle = document.getElementById('modalRagModeToggle');
+        if (modalRagToggle) {
+            if (!modalRagToggle.hasAttribute('data-listener-added')) {
+                modalRagToggle.addEventListener('change', (e) => {
+                    this.useRAG = e.target.checked;
+                    console.log(`RAG mode: ${this.useRAG ? 'enabled' : 'disabled'}`);
+                });
+                modalRagToggle.setAttribute('data-listener-added', 'true');
+            }
+        }
+    }
+
+    async generateAIResponse(email) {
+        // Phase 4: Redirect to modal instead of old panel
+        // Open modal first, then generate response
+        this.showEmailModal(email);
+        // Small delay to ensure modal is open, then trigger response generation
+        setTimeout(() => {
+            this.generateResponseInModal(email);
+        }, 100);
     }
 
     async summarizeEmail(email) {
@@ -578,53 +974,240 @@ class SmartEmailManager {
         }
     }
 
-    displayAIResponse(suggestions, analysis = {}) {
-        const responsePanel = document.getElementById('aiResponsePanel');
-        const optionsContainer = document.getElementById('responseOptions');
+    // Phase 3: Summarize email in modal
+    async summarizeEmailInModal(email) {
+        const resultsDiv = document.getElementById('modalResults');
+        const summarizeBtn = document.getElementById('modalSummarizeBtn');
         
-        // Show context info if RAG was used
+        try {
+            summarizeBtn.disabled = true;
+            summarizeBtn.textContent = '⏳ Summarizing...';
+            resultsDiv.style.display = 'block';
+            resultsDiv.innerHTML = '<div class="modal-loading">⏳ Generating summary...</div>';
+
+            const response = await fetch(`${this.apiBaseUrl}/summarize-email`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    emailId: email.id,
+                    emailData: email
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Email summarization failed: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            const summary = data.summary || 'No summary available';
+            
+            // Store summary for TTS
+            this.currentSummary = summary;
+            this.currentEmailId = email.id;
+            
+            resultsDiv.innerHTML = `
+                <div class="modal-result-section">
+                    <h4>📝 Email Summary</h4>
+                    <div class="modal-result-content">${summary.replace(/\n/g, '<br>')}</div>
+                    <div class="modal-result-actions" style="margin-top: 12px;">
+                        <button class="tts-read-btn action-btn btn-info" 
+                                onclick="window.smartEmailManager.readSummary('${email.id}')" 
+                                title="Read Summary with Hugging Face TTS">
+                            🎵 Read Summary
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            this.showMessage('Summary generated successfully!', 'success', 2000);
+        } catch (error) {
+            console.error('Email summarization error:', error);
+            resultsDiv.innerHTML = `
+                <div class="modal-result-section modal-error">
+                    <h4>❌ Error</h4>
+                    <div class="modal-result-content">Summarization failed: ${error.message}</div>
+                </div>
+            `;
+            this.showMessage(`Summarization failed: ${error.message}`, 'error');
+        } finally {
+            summarizeBtn.disabled = false;
+            summarizeBtn.textContent = '📝 Summarize';
+        }
+    }
+
+    // Phase 3: Generate response in modal
+    async generateResponseInModal(email) {
+        const resultsDiv = document.getElementById('modalResults');
+        const responseBtn = document.getElementById('modalResponseBtn');
+        const saveDraftBtn = document.getElementById('modalSaveDraftBtn');
+        
+        try {
+            responseBtn.disabled = true;
+            responseBtn.textContent = '⏳ Generating...';
+            resultsDiv.style.display = 'block';
+            resultsDiv.innerHTML = '<div class="modal-loading">⏳ Generating AI response...</div>';
+
+            const useRAG = this.useRAG;
+            // Phase 5: Get instruction from modal input (preferred) or fallback to main input
+            const modalInstructionInput = document.getElementById('modalResponseInstruction');
+            const mainInstructionInput = document.getElementById('responseInstruction');
+            const instructionInput = modalInstructionInput || mainInstructionInput;
+            const userInstruction = instructionInput?.value.trim() || 'Generate a helpful response';
+
+            const endpoint = useRAG 
+                ? `${this.apiBaseUrl}/chains/rag-response` 
+                : `${this.apiBaseUrl}/generate-response`;
+            
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    emailData: email,
+                    userInstruction: userInstruction,
+                    options: {
+                        tone: this.currentTone,
+                        contextEmailsLimit: useRAG ? 3 : undefined
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`AI response generation failed: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            const suggestions = data.suggestions || [];
+            const analysis = data.analysis || {};
+            
+            if (suggestions.length > 0) {
+                // Store selected response for save draft
+                this.selectedResponse = suggestions[0];
+                
+                // Show RAG context info if used
         let contextInfo = '';
-        if (analysis.contextUsed) {
-            const contextCount = analysis.contextEmailsCount || 0;
+                if (analysis.contextUsed || (data.metadata && data.metadata.contextEmailsUsed > 0)) {
+                    const contextCount = analysis.contextEmailsCount || data.metadata?.contextEmailsUsed || 0;
             contextInfo = `<div class="rag-context-info" style="margin-bottom: 10px; padding: 8px; background: #e0f2fe; border-radius: 6px; font-size: 12px; color: #0369a1;">
                 🧠 Used ${contextCount} similar emails as context
             </div>`;
         }
         
-        optionsContainer.innerHTML = contextInfo + suggestions.map((suggestion, index) => `
-            <div class="response-option ${index === 0 ? 'selected' : ''}" data-response-index="${index}">
-                <div class="response-type">
+                // Display response suggestions with email-like formatting
+                const responseHTML = suggestions.map((suggestion, index) => {
+                    // Format response as email preview
+                    const fromEmail = 'Your Email';
+                    const toEmail = email.from || 'Recipient';
+                    const subject = email.subject ? `Re: ${email.subject}` : 'Re: Email';
+                    const currentDate = new Date().toLocaleString('en-US', {
+                        weekday: 'short',
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    const formattedText = suggestion.text.replace(/\n/g, '<br>');
+                    
+                    return `
+                    <div class="modal-response-option ${index === 0 ? 'selected' : ''}" data-response-index="${index}">
+                        <div class="modal-response-type">
                     <span>${suggestion.emoji}</span>
                     <span>${suggestion.type.toUpperCase()}</span>
                 </div>
-                <div class="response-text">${suggestion.text}</div>
+                        <div class="email-preview-container">
+                            <div class="email-headers">
+                                <div class="email-header-row">
+                                    <span class="email-header-label">From:</span>
+                                    <span class="email-header-value">${fromEmail}</span>
             </div>
-        `).join('');
+                                <div class="email-header-row">
+                                    <span class="email-header-label">To:</span>
+                                    <span class="email-header-value">${toEmail}</span>
+                                </div>
+                                <div class="email-header-row">
+                                    <span class="email-header-label">Subject:</span>
+                                    <span class="email-header-value">${subject}</span>
+                                </div>
+                                <div class="email-header-row">
+                                    <span class="email-header-label">Date:</span>
+                                    <span class="email-header-value">${currentDate}</span>
+                                </div>
+                            </div>
+                            <div class="email-body">
+                                <div class="response-text">${formattedText}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                }).join('');
+
+                resultsDiv.innerHTML = `
+                    <div class="modal-result-section">
+                        <h4>🤖 AI Response Suggestions</h4>
+                        ${contextInfo}
+                        <div class="modal-response-options">${responseHTML}</div>
+                    </div>
+                `;
 
         // Add click listeners to response options
-        document.querySelectorAll('.response-option').forEach(option => {
+                document.querySelectorAll('.modal-response-option').forEach(option => {
             option.addEventListener('click', (e) => {
-                document.querySelectorAll('.response-option').forEach(o => o.classList.remove('selected'));
+                        document.querySelectorAll('.modal-response-option').forEach(o => o.classList.remove('selected'));
                 e.currentTarget.classList.add('selected');
-                this.selectedResponse = suggestions[parseInt(e.currentTarget.dataset.responseIndex)];
+                        const index = parseInt(e.currentTarget.dataset.responseIndex);
+                        this.selectedResponse = suggestions[index];
             });
         });
 
-        // Set first response as selected by default
-        this.selectedResponse = suggestions[0];
-        responsePanel.style.display = 'block';
-        responsePanel.scrollIntoView({ behavior: 'smooth' });
+                // Show save draft button
+                saveDraftBtn.style.display = 'inline-block';
+                
+                // Phase 5: Clear instruction input after successful generation
+                const modalInstructionInput = document.getElementById('modalResponseInstruction');
+                if (modalInstructionInput) {
+                    modalInstructionInput.value = '';
+                }
+                
+                this.showMessage('Response generated successfully!', 'success', 2000);
+            } else {
+                resultsDiv.innerHTML = `
+                    <div class="modal-result-section">
+                        <h4>🤖 AI Response</h4>
+                        <div class="modal-result-content">No response suggestions available.</div>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('AI response error:', error);
+            resultsDiv.innerHTML = `
+                <div class="modal-result-section modal-error">
+                    <h4>❌ Error</h4>
+                    <div class="modal-result-content">Response generation failed: ${error.message}</div>
+                </div>
+            `;
+            this.showMessage(`Response generation failed: ${error.message}`, 'error');
+        } finally {
+            responseBtn.disabled = false;
+            responseBtn.textContent = '🤖 Generate Response';
+        }
     }
 
-    async saveDraft() {
+    // Phase 3: Save draft from modal
+    async saveDraftFromModal() {
         if (!this.selectedResponse || !this.selectedEmail) {
-            this.showMessage('Please select a response first', 'error');
+            this.showMessage('Please generate a response first', 'error');
             return;
         }
 
-        this.showLoading(true, 'Saving draft to Gmail...');
-
         try {
+            const saveDraftBtn = document.getElementById('modalSaveDraftBtn');
+            saveDraftBtn.disabled = true;
+            saveDraftBtn.textContent = '⏳ Saving...';
+
             const response = await fetch(`${this.apiBaseUrl}/save-draft`, {
                 method: 'POST',
                 headers: {
@@ -641,42 +1224,94 @@ class SmartEmailManager {
                 throw new Error(`Save draft failed: ${response.statusText}`);
             }
 
-            const data = await response.json();
             this.showMessage('Draft saved to Gmail successfully!', 'success');
             this.updateStats();
-            
         } catch (error) {
             console.error('Save draft error:', error);
             this.showMessage(`Save draft failed: ${error.message}`, 'error');
         } finally {
-            this.showLoading(false);
+            const saveDraftBtn = document.getElementById('modalSaveDraftBtn');
+            saveDraftBtn.disabled = false;
+            saveDraftBtn.textContent = '💾 Save Draft';
         }
+    }
+
+    // Phase 4: Legacy method - now redirects to modal
+    displayAIResponse(suggestions, analysis = {}) {
+        // This method is deprecated - responses now show in modal
+        // Keep for backward compatibility but redirect to modal
+        if (this.selectedEmail) {
+            this.showEmailModal(this.selectedEmail);
+            // Display responses in modal results section
+            const resultsDiv = document.getElementById('modalResults');
+            if (resultsDiv && suggestions.length > 0) {
+                this.selectedResponse = suggestions[0];
+                const responseHTML = suggestions.map((suggestion, index) => `
+                    <div class="modal-response-option ${index === 0 ? 'selected' : ''}" data-response-index="${index}">
+                        <div class="modal-response-type">
+                            <span>${suggestion.emoji}</span>
+                            <span>${suggestion.type.toUpperCase()}</span>
+                        </div>
+                        <div class="modal-response-text">${suggestion.text.replace(/\n/g, '<br>')}</div>
+                    </div>
+                `).join('');
+
+                resultsDiv.innerHTML = `
+                    <div class="modal-result-section">
+                        <h4>🤖 AI Response Suggestions</h4>
+                        ${analysis.contextUsed ? `<div class="rag-context-info" style="margin-bottom: 10px; padding: 8px; background: #e0f2fe; border-radius: 6px; font-size: 12px; color: #0369a1;">
+                            🧠 Used ${analysis.contextEmailsCount || 0} similar emails as context
+                        </div>` : ''}
+                        <div class="modal-response-options">${responseHTML}</div>
+                    </div>
+                `;
+                resultsDiv.style.display = 'block';
+                document.getElementById('modalSaveDraftBtn').style.display = 'inline-block';
+
+                // Add click listeners
+                document.querySelectorAll('.modal-response-option').forEach(option => {
+                    option.addEventListener('click', (e) => {
+                        document.querySelectorAll('.modal-response-option').forEach(o => o.classList.remove('selected'));
+                        e.currentTarget.classList.add('selected');
+                        const index = parseInt(e.currentTarget.dataset.responseIndex);
+                        this.selectedResponse = suggestions[index];
+                    });
+                });
+            }
+        }
+    }
+
+    // Phase 4: Legacy methods - redirect to modal
+    async saveDraft() {
+        // Redirect to modal save draft if modal is open
+        const modal = document.getElementById('emailModal');
+        if (modal && modal.style.display !== 'none') {
+            return this.saveDraftFromModal();
+        }
+        
+        // Fallback for old panel (shouldn't be used anymore)
+        if (!this.selectedResponse || !this.selectedEmail) {
+            this.showMessage('Please open an email in the modal and generate a response first', 'error');
+            return;
+        }
+        return this.saveDraftFromModal();
     }
 
     editResponse() {
-        if (!this.selectedResponse) {
-            this.showMessage('Please select a response first', 'error');
-            return;
-        }
-
-        const newText = prompt('Edit your response:', this.selectedResponse.text);
-        if (newText && newText.trim()) {
-            this.selectedResponse.text = newText.trim();
-            // Update the display
-            const selectedOption = document.querySelector('.response-option.selected');
-            if (selectedOption) {
-                selectedOption.querySelector('.response-text').textContent = this.selectedResponse.text;
-            }
-            this.showMessage('Response updated!', 'success');
-        }
+        // Phase 4: Edit functionality can be added to modal if needed
+        this.showMessage('Please use the modal to view and edit responses', 'info');
     }
 
     generateNewResponse() {
+        // Phase 4: Redirect to modal
         if (!this.selectedEmail) {
             this.showMessage('Please select an email first', 'error');
             return;
         }
-        this.generateAIResponse(this.selectedEmail);
+        this.showEmailModal(this.selectedEmail);
+        setTimeout(() => {
+            this.generateResponseInModal(this.selectedEmail);
+        }, 100);
     }
 
     async loadUserStats() {
@@ -732,27 +1367,39 @@ class SmartEmailManager {
     }
 
     hideAIResponsePanel() {
-        document.getElementById('aiResponsePanel').style.display = 'none';
+        // Phase 4: Old panel is deprecated, but keep method for compatibility
+        const panel = document.getElementById('aiResponsePanel');
+        if (panel) {
+            panel.style.display = 'none';
+        }
     }
 
-    showMessage(message, type = 'info') {
+    showMessage(message, type = 'info', duration = 5000) {
         // Remove existing messages
-        document.querySelectorAll('.error-message, .success-message').forEach(el => el.remove());
+        document.querySelectorAll('.error-message, .success-message, .info-message').forEach(el => el.remove());
         
         const messageDiv = document.createElement('div');
-        messageDiv.className = type === 'error' ? 'error-message' : 'success-message';
+        if (type === 'error') {
+            messageDiv.className = 'error-message';
+        } else if (type === 'success') {
+            messageDiv.className = 'success-message';
+        } else {
+            messageDiv.className = 'info-message';
+        }
         messageDiv.textContent = message;
         
         // Insert at the top of results panel
         const resultsPanel = document.querySelector('.results-panel');
+        if (resultsPanel) {
         resultsPanel.insertBefore(messageDiv, resultsPanel.firstChild);
+        }
         
-        // Auto-remove after 5 seconds
+        // Auto-remove after specified duration
         setTimeout(() => {
             if (messageDiv.parentNode) {
                 messageDiv.remove();
             }
-        }, 5000);
+        }, duration);
     }
 
     showWelcomeMessage() {
@@ -1349,11 +1996,78 @@ class SmartEmailManager {
     }
 
     // Update category statistics display
+    // Category definitions with descriptions
+    getCategoryDefinition(category) {
+        const definitions = {
+            'marketing': {
+                name: 'Marketing',
+                description: 'Promotional content and advertisements',
+                color: '#f59e0b',
+                emoji: '📢'
+            },
+            'notification': {
+                name: 'Notification',
+                description: 'System alerts and updates',
+                color: '#ef4444',
+                emoji: '🔔'
+            },
+            'work': {
+                name: 'Work',
+                description: 'Professional and business-related emails',
+                color: '#3b82f6',
+                emoji: '💼'
+            },
+            'personal': {
+                name: 'Personal',
+                description: 'Personal communications from friends and family',
+                color: '#8b5cf6',
+                emoji: '👤'
+            },
+            'newsletter': {
+                name: 'Newsletter',
+                description: 'Subscribed newsletters and updates',
+                color: '#10b981',
+                emoji: '📰'
+            },
+            'finance': {
+                name: 'Finance',
+                description: 'Financial transactions and statements',
+                color: '#06b6d4',
+                emoji: '💰'
+            },
+            'social': {
+                name: 'Social',
+                description: 'Social media notifications and updates',
+                color: '#ec4899',
+                emoji: '👥'
+            },
+            'spam': {
+                name: 'Spam',
+                description: 'Unwanted or suspicious emails',
+                color: '#6b7280',
+                emoji: '🚫'
+            },
+            'promotion': {
+                name: 'Promotion',
+                description: 'Sales and promotional offers',
+                color: '#f59e0b',
+                emoji: '🛍️'
+            },
+            'other': {
+                name: 'Other',
+                description: 'Uncategorized or miscellaneous emails',
+                color: '#94a3b8',
+                emoji: '📧'
+            }
+        };
+        return definitions[category] || definitions['other'];
+    }
+
     updateCategoryStatistics(emails) {
         if (!emails || emails.length === 0) {
-            const statsSection = document.getElementById('categoryStatsSection');
-            if (statsSection) {
-                statsSection.style.display = 'none';
+            const statsContainer = document.getElementById('emailTypeStatistics');
+            if (statsContainer) {
+                statsContainer.style.display = 'none';
             }
             return;
         }
@@ -1365,34 +2079,140 @@ class SmartEmailManager {
             categoryCounts[category] = (categoryCounts[category] || 0) + 1;
         });
         
-        // Display statistics
-        const statsContainer = document.getElementById('categoryStats');
-        const statsSection = document.getElementById('categoryStatsSection');
-        if (!statsContainer || !statsSection) return;
+        // Display statistics in new panel
+        const statsContainer = document.getElementById('emailTypeStatistics');
+        const statsList = document.getElementById('emailTypeStatsList');
+        const totalElement = document.getElementById('emailTypeTotal');
         
+        if (!statsContainer || !statsList || !totalElement) return;
+        
+        // Update total
+        totalElement.textContent = emails.length;
+        
+        // Create statistics HTML
         const statsHTML = Object.entries(categoryCounts)
             .sort((a, b) => b[1] - a[1]) // Sort by count
             .map(([category, count]) => {
                 const percentage = ((count / emails.length) * 100).toFixed(1);
-                const categoryEmoji = {
-                    'work': '💼', 'personal': '👤', 'promotion': '🛍️',
-                    'marketing': '📢', 'newsletter': '📰', 'notification': '🔔',
-                    'social': '👥', 'finance': '💰', 'spam': '🚫', 'other': '📧'
-                };
+                const def = this.getCategoryDefinition(category);
+                const barWidth = Math.max(percentage, 5); // Minimum 5% width for visibility
+                
                 return `
-                    <div class="category-stat-item" data-category="${category}">
-                        <span class="category-stat-emoji">${categoryEmoji[category] || '📧'}</span>
-                        <span class="category-stat-label">${category}</span>
-                        <span class="category-stat-count">${count}</span>
-                        <span class="category-stat-percentage">${percentage}%</span>
+                    <div class="email-type-stat-item" 
+                         data-category="${category}" 
+                         title="${def.description}"
+                         role="button"
+                         tabindex="0">
+                        <div class="email-type-stat-info">
+                            <span class="email-type-stat-name">${def.name}</span>
+                            <span class="email-type-stat-count">${count}</span>
+                        </div>
+                        <div class="email-type-stat-bar-container">
+                            <div class="email-type-stat-bar" 
+                                 style="width: ${barWidth}%; background-color: ${def.color};"></div>
+                        </div>
+                        <div class="email-type-stat-percentage">${percentage}%</div>
                     </div>
                 `;
             }).join('');
         
-        statsContainer.innerHTML = statsHTML;
-        statsSection.style.display = 'block';
+        statsList.innerHTML = statsHTML;
+        statsContainer.style.display = 'block';
         
-        // Category stats are for display only, no filtering
+        // Add click listeners for filtering
+        document.querySelectorAll('.email-type-stat-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                const category = e.currentTarget.dataset.category;
+                this.filterByCategory(category);
+            });
+            
+            // Keyboard support
+            item.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    const category = e.currentTarget.dataset.category;
+                    this.filterByCategory(category);
+                }
+            });
+        });
+    }
+
+    async filterByCategory(category) {
+        if (category === 'all' || !category) {
+            // Show all emails - perform search without category filter
+            await this.performSearchWithCategory(null);
+            const showAllBtn = document.getElementById('showAllEmailsBtn');
+            if (showAllBtn) showAllBtn.style.display = 'none';
+        } else {
+            // Search with category filter (will use Redis cache if available)
+            await this.performSearchWithCategory(category);
+            const showAllBtn = document.getElementById('showAllEmailsBtn');
+            if (showAllBtn) showAllBtn.style.display = 'block';
+        }
+    }
+
+    async performSearchWithCategory(category) {
+        // Clear search input when filtering by category
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) searchInput.value = '';
+
+        this.showLoading(true, category ? `Loading ${category} emails...` : 'Loading all emails...');
+        this.hideEmptyState();
+        this.hideAIResponsePanel();
+
+        try {
+            // Build URL with category query parameter
+            const url = new URL(`${this.apiBaseUrl}/search`);
+            if (category) {
+                url.searchParams.set('category', category);
+            }
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    query: '',  // Empty query = get all emails
+                    limit: null  // No limit = get all
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Search failed: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            // Ensure all emails have category data (default to 'other' if missing)
+            const results = (data.results || []).map(email => ({
+                ...email,
+                category: email.category || 'other',
+                categoryConfidence: email.categoryConfidence || 0.5
+            }));
+            
+            this.currentEmailList = results;
+            this.displaySearchResults(results);
+            
+            // Update category statistics
+            this.updateCategoryStatistics(results);
+            
+            // Show appropriate message
+            if (category) {
+                const def = this.getCategoryDefinition(category);
+                const cacheInfo = data.cached ? ' (from cache)' : '';
+                this.showMessage(`Showing ${results.length} ${def.name.toLowerCase()} emails${cacheInfo}`, 'info', 2000);
+            } else {
+                const cacheInfo = data.cached ? ' (from cache)' : '';
+                this.showMessage(`Showing all ${results.length} emails${cacheInfo}`, 'info', 2000);
+            }
+            
+        } catch (error) {
+            console.error('Category filter error:', error);
+            this.showMessage(`Failed to load emails: ${error.message}`, 'error');
+            this.showEmptyState();
+        } finally {
+            this.showLoading(false);
+        }
     }
 
     // Handle category change (future enhancement - manual override)
@@ -1453,6 +2273,220 @@ class SmartEmailManager {
             console.log('Could not load categories:', error.message);
         }
     }
+
+    // ========== Label Management Functions ==========
+
+    async loadAllLabels() {
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/labels`);
+            if (!response.ok) {
+                throw new Error('Failed to load labels');
+            }
+            const data = await response.json();
+            this.allLabels = data.labels || [];
+            this.displayLabels();
+        } catch (error) {
+            console.error('Error loading labels:', error);
+            this.allLabels = [];
+            this.displayLabels();
+        }
+    }
+
+    displayLabels() {
+        const labelsList = document.getElementById('labelsList');
+        if (!labelsList) return;
+
+        if (!this.allLabels || this.allLabels.length === 0) {
+            labelsList.innerHTML = '<div style="color: #64748b; font-size: 0.9rem; padding: 10px; text-align: center;">No labels yet. Create one to get started!</div>';
+            return;
+        }
+
+        labelsList.innerHTML = this.allLabels.map(label => {
+            const color = label.color || '#6b7280';
+            return `
+                <div class="label-item" data-label-id="${label.id}">
+                    <div class="label-item-header">
+                        <span class="label-badge" style="background-color: ${color};">
+                            ${label.name}
+                        </span>
+                        <span class="label-email-count">${label.emailCount || 0} emails</span>
+                    </div>
+                    <div class="label-item-description">${label.description || ''}</div>
+                    <div class="label-item-actions">
+                        <button class="apply-label-btn action-btn btn-secondary btn-small" data-label-id="${label.id}" title="Apply this label to matching emails">
+                            🔍 Auto-Apply
+                        </button>
+                        <button class="delete-label-btn action-btn btn-danger btn-small" data-label-id="${label.id}" title="Delete this label">
+                            🗑️ Delete
+                        </button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    showLabelModal() {
+        const modal = document.getElementById('labelModal');
+        if (!modal) return;
+
+        // Reset form
+        document.getElementById('labelName').value = '';
+        document.getElementById('labelDescription').value = '';
+        document.getElementById('labelPrompt').value = '';
+        document.getElementById('labelColor').value = '#6b7280';
+        document.getElementById('labelColorText').value = '#6b7280';
+        document.getElementById('labelModalTitle').textContent = 'Create New Label';
+        document.getElementById('labelSaveBtn').textContent = 'Create Label';
+
+        modal.style.display = 'flex';
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+
+        // Focus on first input
+        setTimeout(() => {
+            document.getElementById('labelName').focus();
+        }, 100);
+    }
+
+    hideLabelModal() {
+        const modal = document.getElementById('labelModal');
+        if (modal) {
+            modal.style.display = 'none';
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+        }
+    }
+
+    async createLabel() {
+        const name = document.getElementById('labelName').value.trim();
+        const description = document.getElementById('labelDescription').value.trim();
+        const prompt = document.getElementById('labelPrompt').value.trim();
+        const color = document.getElementById('labelColorText').value.trim() || '#6b7280';
+
+        if (!name || !description || !prompt) {
+            this.showMessage('Please fill in all required fields', 'error');
+            return;
+        }
+
+        try {
+            this.showLoading(true, 'Creating label...');
+            const response = await fetch(`${this.apiBaseUrl}/labels`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name,
+                    description,
+                    prompt,
+                    color
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to create label');
+            }
+
+            const data = await response.json();
+            this.showMessage(`Label "${name}" created successfully!`, 'success', 3000);
+            this.hideLabelModal();
+            await this.loadAllLabels();
+        } catch (error) {
+            console.error('Error creating label:', error);
+            this.showMessage(`Failed to create label: ${error.message}`, 'error');
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+    async autoApplyLabel(labelId) {
+        const label = this.allLabels.find(l => l.id === labelId);
+        if (!label) {
+            this.showMessage('Label not found', 'error');
+            return;
+        }
+
+        if (!confirm(`Apply label "${label.name}" to all matching emails? This may take a while...`)) {
+            return;
+        }
+
+        try {
+            this.showLoading(true, `Applying label "${label.name}" to matching emails...`);
+            const response = await fetch(`${this.apiBaseUrl}/labels/${labelId}/apply`, {
+                method: 'POST'
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to apply label');
+            }
+
+            const data = await response.json();
+            this.showMessage(`Label applied to ${data.emailCount || 0} emails!`, 'success', 3000);
+            await this.loadAllLabels();
+            // Refresh email list to show updated labels
+            this.performSearch();
+        } catch (error) {
+            console.error('Error applying label:', error);
+            this.showMessage(`Failed to apply label: ${error.message}`, 'error');
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+    async deleteLabel(labelId) {
+        const label = this.allLabels.find(l => l.id === labelId);
+        if (!label) {
+            this.showMessage('Label not found', 'error');
+            return;
+        }
+
+        if (!confirm(`Delete label "${label.name}"? This will remove it from all emails.`)) {
+            return;
+        }
+
+        try {
+            this.showLoading(true, 'Deleting label...');
+            const response = await fetch(`${this.apiBaseUrl}/labels/${labelId}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to delete label');
+            }
+
+            this.showMessage(`Label "${label.name}" deleted successfully!`, 'success', 3000);
+            await this.loadAllLabels();
+            // Refresh email list
+            this.performSearch();
+        } catch (error) {
+            console.error('Error deleting label:', error);
+            this.showMessage(`Failed to delete label: ${error.message}`, 'error');
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+    // Get labels for an email (from metadata)
+    getEmailLabels(email) {
+        if (!email || !this.allLabels || !this.allLabels.length) return [];
+        const labelsStr = email.labels || '';
+        if (!labelsStr || labelsStr.trim() === '') return [];
+        const labelIds = labelsStr.split(',').map(id => id.trim()).filter(id => id && id !== '');
+        if (labelIds.length === 0) return [];
+        return this.allLabels.filter(label => labelIds.includes(label.id));
+    }
+
+    // Format labels HTML for display
+    formatLabelsHTML(labels) {
+        if (!labels || labels.length === 0) return '';
+        return labels.map(label => {
+            const color = label.color || '#6b7280';
+            return `<span class="email-label-badge" style="background-color: ${color};" title="${label.description || label.name}">${label.name}</span>`;
+        }).join('');
+    }
 }
 
 // Initialize the application when DOM is loaded
@@ -1469,6 +2503,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Utility function for viewing full email (called from HTML)
 function viewFullEmail(emailId) {
-    // This would open a modal or new page with the full email content
-    alert(`View full email: ${emailId}\n(This feature can be implemented later)`);
+    // Phase 4: Now opens modal instead
+    if (window.smartEmailManager && window.smartEmailManager.currentEmailList) {
+        const email = window.smartEmailManager.currentEmailList.find(e => e.id === emailId);
+        if (email) {
+            window.smartEmailManager.showEmailModal(email);
+            return;
+        }
+    }
+    alert(`View full email: ${emailId}\n(Email not found in current list)`);
 }

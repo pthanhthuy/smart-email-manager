@@ -7,6 +7,7 @@ from app.services.ai_responses import AIResponseService
 from app.services.embeddings import EmbeddingService
 from app.services.email_classification import EmailClassificationService
 from app.services.history import ResponseHistoryService
+from app.services.redis_cache import RedisCacheService
 from app.services.tone import ToneAdjustmentService
 from app.services.vector_store import VectorStore
 
@@ -67,3 +68,12 @@ def get_history_service() -> ResponseHistoryService:
 
 def get_classification_service() -> EmailClassificationService:
     return _classification_service()
+
+
+@lru_cache
+def _redis_cache_service() -> RedisCacheService:
+    return RedisCacheService(get_settings())
+
+
+def get_redis_cache_service() -> RedisCacheService:
+    return _redis_cache_service()

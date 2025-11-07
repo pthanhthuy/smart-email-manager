@@ -1,0 +1,11 @@
+{
+  "label_60bf2c6708ce": {
+    "id": "label_60bf2c6708ce",
+    "name": "Notion",
+    "description": "Notion",
+    "prompt": "Emails from Notion which is the note platform",
+    "createdAt": "2025-11-07T16:16:06.973343",
+    "emailCount": 1,
+    "color": "#ff00d0"
+  }
+}

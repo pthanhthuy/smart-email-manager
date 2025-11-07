@@ -22,3 +22,5 @@ langchain>=0.1.0
 langchain-openai>=0.1.0
 langchain-community>=0.0.20
 langchain-core>=0.1.0
+# Redis for caching
+redis>=5.0.0

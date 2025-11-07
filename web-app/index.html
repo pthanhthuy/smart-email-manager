@@ -37,59 +37,30 @@
                 </div>
 
                 <div class="search-section">
-                    <h3>🎨 Response Tone</h3>
-                    <div class="tone-selector">
-                        <button class="tone-btn active" data-tone="professional">Professional</button>
-                        <button class="tone-btn" data-tone="casual">Casual</button>
-                        <button class="tone-btn" data-tone="brief">Brief</button>
-                        <button class="tone-btn" data-tone="friendly">Friendly</button>
-                        <button class="tone-btn" data-tone="formal">Formal</button>
+                    <h3>📊 Email Categories</h3>
+                    <div id="emailTypeStatistics" class="email-type-statistics">
+                        <div class="email-type-stat-header">
+                            <span id="emailTypeTotal">0</span> emails total
+                        </div>
+                        <div id="emailTypeStatsList" class="email-type-stats-list">
+                            <!-- Statistics will be populated here -->
+                        </div>
+                        <button id="showAllEmailsBtn" class="show-all-btn" style="display: none;">Show All Emails</button>
                     </div>
                 </div>
 
+
                 <div class="search-section">
-                    <h3>💬 Response Instruction</h3>
-                    <div class="instruction-box">
-                        <input type="text" id="responseInstruction" class="instruction-input" placeholder="What do you want to communicate? (e.g., 'I can attend the meeting', 'I need more time')">
-                        <div class="quick-instructions">
-                            <button class="quick-btn" data-instruction="I can attend">✅ I can attend</button>
-                            <button class="quick-btn" data-instruction="I need more time">⏰ I need more time</button>
-                            <button class="quick-btn" data-instruction="I'll send the report">📄 I'll send the report</button>
-                            <button class="quick-btn" data-instruction="I'm interested">👍 I'm interested</button>
-                        </div>
-                        <div style="margin-top: 12px; display: flex; align-items: center; gap: 8px; padding-top: 8px; border-top: 1px solid #e2e8f0;">
-                            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; color: #475569;">
-                                <input type="checkbox" id="ragModeToggle" style="cursor: pointer; width: 16px; height: 16px;">
-                                <span>🧠 <strong>RAG Mode</strong> - Use context from similar emails</span>
-                            </label>
-                            <span style="font-size: 11px; color: #64748b; cursor: help;" title="Retrieval Augmented Generation: Uses similar emails from your history as context for more informed responses">ⓘ</span>
-                        </div>
-                        <div class="instruction-examples">
-                            <small>💡 Click a quick button above or type your own instruction</small>
+                    <h3>🏷️ Custom Labels</h3>
+                    <div class="labels-section">
+                        <button id="createLabelBtn" class="action-btn btn-primary" style="width: 100%; margin-bottom: 10px;">
+                            ➕ Create New Label
+                        </button>
+                        <div id="labelsList" class="labels-list">
+                            <!-- Labels will be populated here -->
                         </div>
                     </div>
                 </div>
-
-                <div class="search-section">
-                    <h3>📚 Response History</h3>
-                    <div class="history-controls">
-                        <button id="loadHistoryBtn" class="history-btn">📖 Load History</button>
-                        <button id="clearHistoryBtn" class="history-btn danger">🗑️ Clear History</button>
-                    </div>
-                    <div id="historyContainer" class="history-container" style="display: none;">
-                        <div id="historyList" class="history-list"></div>
-                    </div>
-                </div>
-
-                <div class="search-section">
-                    <h3>🔍 Tone Analysis</h3>
-                    <div class="tone-analysis-box">
-                        <textarea id="toneAnalysisInput" class="tone-analysis-input" placeholder="Paste text here to analyze its tone..."></textarea>
-                        <button id="analyzeToneBtn" class="analyze-tone-btn">🔍 Analyze Tone</button>
-                        <div id="toneAnalysisResult" class="tone-analysis-result" style="display: none;"></div>
-                    </div>
-                </div>
-
 
                 <div class="feature-highlight">
                     <h4>🤖 AI Features</h4>
@@ -97,19 +68,10 @@
                     • AI generates smart response suggestions<br>
                     • Tone adjustment for perfect communication<br>
                     • Hugging Face TTS for email summary reading<br>
-                    • Response history and learning</p>
+                    • Response history and learning<br>
+                    • Custom labels with AI-based matching</p>
                 </div>
 
-                <div class="search-section">
-                    <h3>🧪 Hugging Face TTS Test</h3>
-                    <div class="tts-test-panel">
-                        <button id="testTTSBtn" class="test-tts-btn">🎵 Test Hugging Face TTS</button>
-                        <div id="testTTSResult" class="test-tts-result" style="display: none;">
-                            <p>This is a test of the Hugging Face text-to-speech functionality. If you can hear this, the TTS system is working correctly!</p>
-                            <button class="tts-read-btn" onclick="smartEmailManager.readTestSummary()">🎵 Read Test</button>
-                        </div>
-                    </div>
-                </div>
 
                 <div class="stats-panel">
                     <h4 style="margin-bottom: 15px; color: #1e293b;">📊 Your Stats</h4>
@@ -186,6 +148,132 @@
         <div class="spinner"></div>
         <span>Processing...</span>
     </div>
+
+    <!-- Label Creation/Edit Modal -->
+    <div id="labelModal" class="email-modal-overlay" style="display: none;" aria-hidden="true" role="dialog" aria-modal="true">
+        <div class="email-modal" style="max-width: 600px;">
+            <div class="email-modal-header">
+                <h3 id="labelModalTitle">Create New Label</h3>
+                <button class="email-modal-close" id="labelModalClose" aria-label="Close label modal">✕</button>
+            </div>
+            <div class="email-modal-content">
+                <form id="labelForm" onsubmit="return false;">
+                    <div class="form-group">
+                        <label for="labelName">Label Name *</label>
+                        <input type="text" id="labelName" class="form-input" placeholder="e.g., Urgent Client Requests" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="labelDescription">Description *</label>
+                        <textarea id="labelDescription" class="form-textarea" rows="2" placeholder="Brief description of what this label represents" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="labelPrompt">Label Criteria (Prompt) *</label>
+                        <textarea id="labelPrompt" class="form-textarea" rows="4" placeholder="Describe which emails should have this label. Be specific!&#10;Example: 'Emails from clients with urgent keywords like urgent, asap, deadline, or critical'" required></textarea>
+                        <small style="color: #64748b; font-size: 0.85rem;">AI will use this prompt to determine if emails match this label</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="labelColor">Color (Optional)</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="color" id="labelColor" class="form-color" value="#6b7280">
+                            <input type="text" id="labelColorText" class="form-input" placeholder="#6b7280" style="flex: 1;">
+                        </div>
+                    </div>
+                    <div class="email-modal-actions">
+                        <button type="button" id="labelCancelBtn" class="action-btn btn-secondary">Cancel</button>
+                        <button type="submit" id="labelSaveBtn" class="action-btn btn-primary">Create Label</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Email Detail Modal -->
+    <div id="emailModal" class="email-modal-overlay" style="display: none;" aria-hidden="true" role="dialog" aria-modal="true">
+        <div class="email-modal">
+            <div class="email-modal-header">
+                <h3 id="emailModalTitle">Email Details</h3>
+                <button class="email-modal-close" id="emailModalClose" aria-label="Close email modal">✕</button>
+            </div>
+            <div class="email-modal-content">
+                <!-- Email Headers -->
+                <div class="email-modal-headers">
+                    <div class="email-modal-header-row">
+                        <span class="email-modal-label">From:</span>
+                        <span class="email-modal-value" id="modalFrom"></span>
+                    </div>
+                    <div class="email-modal-header-row">
+                        <span class="email-modal-label">To:</span>
+                        <span class="email-modal-value" id="modalTo"></span>
+                    </div>
+                    <div class="email-modal-header-row">
+                        <span class="email-modal-label">Subject:</span>
+                        <span class="email-modal-value" id="modalSubject" aria-label="Email subject"></span>
+                    </div>
+                    <div class="email-modal-header-row">
+                        <span class="email-modal-label">Date:</span>
+                        <span class="email-modal-value" id="modalDate"></span>
+                    </div>
+                </div>
+
+                <!-- Email Body -->
+                <div class="email-modal-body">
+                    <div class="email-modal-body-content" id="modalBody"></div>
+                </div>
+
+                <!-- Response Instruction Section -->
+                <div class="email-modal-instruction">
+                    <label for="modalResponseInstruction" class="email-modal-instruction-label">
+                        💬 Response Instruction
+                    </label>
+                    <input type="text" 
+                           id="modalResponseInstruction" 
+                           class="email-modal-instruction-input" 
+                           placeholder="What do you want to communicate? (e.g., 'I can attend the meeting', 'I need more time')">
+                    <div class="email-modal-quick-instructions">
+                        <button class="quick-btn-modal" data-instruction="I can attend">✅ I can attend</button>
+                        <button class="quick-btn-modal" data-instruction="I need more time">⏰ I need more time</button>
+                        <button class="quick-btn-modal" data-instruction="I'll send the report">📄 I'll send the report</button>
+                        <button class="quick-btn-modal" data-instruction="I'm interested">👍 I'm interested</button>
+                    </div>
+                    
+                    <!-- Response Tone Selector -->
+                    <div class="email-modal-tone-selector" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #e2e8f0;">
+                        <label class="email-modal-instruction-label" style="margin-bottom: 8px;">
+                            🎨 Response Tone
+                        </label>
+                        <div class="tone-selector-modal">
+                            <button class="tone-btn-modal active" data-tone="professional">Professional</button>
+                            <button class="tone-btn-modal" data-tone="casual">Casual</button>
+                            <button class="tone-btn-modal" data-tone="brief">Brief</button>
+                            <button class="tone-btn-modal" data-tone="friendly">Friendly</button>
+                            <button class="tone-btn-modal" data-tone="formal">Formal</button>
+                        </div>
+                    </div>
+                    
+                    <div class="email-modal-rag-toggle" style="margin-top: 12px; display: flex; align-items: center; gap: 8px; padding-top: 12px; border-top: 1px solid #e2e8f0;">
+                        <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 13px; color: #475569;">
+                            <input type="checkbox" id="modalRagModeToggle" style="cursor: pointer; width: 16px; height: 16px;">
+                            <span>🧠 <strong>RAG Mode</strong> - Use context from similar emails</span>
+                        </label>
+                        <span style="font-size: 11px; color: #64748b; cursor: help;" title="Retrieval Augmented Generation: Uses similar emails from your history as context for more informed responses">ⓘ</span>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="email-modal-actions">
+                    <button id="modalSummarizeBtn" class="action-btn btn-info">📝 Summarize</button>
+                    <button id="modalResponseBtn" class="action-btn btn-primary">🤖 Generate Response</button>
+                    <button id="modalSaveDraftBtn" class="action-btn btn-success" style="display: none;">💾 Save Draft</button>
+                </div>
+
+                <!-- Results Section (for summary and response) -->
+                <div id="modalResults" class="email-modal-results" style="display: none;">
+                    <!-- Summary or response results will appear here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="app.js?v=2"></script>
     <!-- <script src="debug-tts.js?v=1"></script> -->
     

@@ -33,8 +33,12 @@ class GenerateResponseResponse(BaseModel):
 
 class SummaryRequest(BaseModel):
     emailId: str
-    emailData: EmailData
+    emailData: EmailData  # FastAPI will parse dict to EmailData automatically
     options: Dict[str, Any] = Field(default_factory=dict)
+    
+    class Config:
+        # Allow extra fields for cached email data that might have additional fields
+        extra = "allow"
 
 
 # LangChain structured output models

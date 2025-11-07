@@ -38,10 +38,29 @@ async def summarize_email(
     if not payload.emailId or not payload.emailData:
         return JSONResponse(status_code=400, content={"success": False, "error": "emailId and emailData are required"})
     try:
-        result = await ai_service.generate_email_summary(payload.emailData.dict(by_alias=True), payload.options)
+        # Convert EmailData model to dict, handling both cached and fresh email data
+        # Cached emails might have slightly different structure, so we normalize it
+        if hasattr(payload.emailData, 'dict'):
+            email_dict = payload.emailData.dict(by_alias=True)
+        else:
+            # If it's already a dict (from cache), use it directly
+            email_dict = payload.emailData
+        
+        # Ensure required fields are present (use snippet if body is missing)
+        if not email_dict.get("body") and email_dict.get("snippet"):
+            email_dict["body"] = email_dict["snippet"]
+        
+        # Ensure from field is properly set (handle both 'from' and 'from_' aliases)
+        if not email_dict.get("from") and email_dict.get("from_"):
+            email_dict["from"] = email_dict["from_"]
+        elif not email_dict.get("from"):
+            email_dict["from"] = "Unknown"
+        
+        logger.debug("Summarizing email %s with body length: %s", payload.emailId, len(email_dict.get("body", "") or ""))
+        result = await ai_service.generate_email_summary(email_dict, payload.options)
         return result
     except Exception as exc:  # pylint: disable=broad-except
-        logger.error("Email summarization error: %s", exc)
+        logger.error("Email summarization error: %s", exc, exc_info=True)
         return JSONResponse(
             status_code=500,
             content={"success": False, "error": str(exc), "hint": "Make sure OPENAI_API_KEY is set in .env file"},
