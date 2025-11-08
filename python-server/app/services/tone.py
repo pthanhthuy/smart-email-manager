@@ -25,7 +25,96 @@ TONE_DESCRIPTIONS: Dict[str, str] = {
     "urgent": "urgent and direct, conveying importance",
     "diplomatic": "diplomatic and tactful, carefully worded",
     "enthusiastic": "enthusiastic and positive, showing excitement",
+    "brief": "concise and to the point, brief but complete",
 }
+
+
+def get_tone_guidelines(tone: str) -> str:
+    """Get tone-specific guidelines for use in prompts."""
+    tone_guidelines = {
+        "very formal": """- Use formal titles (Mr., Ms., Dr., etc.) when appropriate
+- Avoid contractions (use "cannot" instead of "can't", "I will" instead of "I'll")
+- Use formal salutations: "Dear [Title] [Last Name]," or "Dear Sir/Madam,"
+- Use formal closings: "Respectfully yours," "Sincerely," "Yours faithfully,"
+- Structure sentences formally with complete thoughts
+- Avoid casual expressions or colloquialisms
+- Use passive voice when appropriate for formality
+- Maintain respectful distance and professional boundaries""",
+        "formal": """- Use appropriate titles and formal greetings
+- Prefer "cannot" over "can't" but contractions are acceptable in moderation
+- Use standard business closings: "Best regards," "Sincerely," "Regards,"
+- Maintain professional structure and formatting
+- Use clear, direct language
+- Avoid overly casual expressions
+- Keep a respectful, professional tone""",
+        "professional": """- Use standard business greetings: "Hi [Name]," or "Hello [Name],"
+- Contractions are acceptable and natural
+- Use professional but friendly closings: "Best regards," "Best," "Thanks,"
+- Balance professionalism with approachability
+- Use clear, direct communication
+- Can be slightly more conversational than formal
+- Maintain business-appropriate language""",
+        "casual": """- Use friendly greetings: "Hi [Name]," "Hey [Name]," or just "[Name],"
+- Contractions are natural and expected
+- Use casual closings: "Thanks," "Best," "Talk soon," "Cheers,"
+- Can use more conversational language
+- Structure can be more relaxed
+- Still maintain professionalism and respect
+- Can include friendly expressions""",
+        "very casual": """- Use very relaxed greetings: "Hey," "Hi there," or just start with the message
+- Contractions are natural and frequent
+- Use very casual closings: "Thanks!", "See you!", "Talk later," or no closing
+- Very conversational, like talking to a friend
+- Can use casual expressions and idioms
+- Relaxed sentence structure
+- Warm and friendly throughout""",
+        "friendly": """- Use warm greetings: "Hi [Name]!," "Hello [Name]!," with enthusiasm
+- Show personality and warmth
+- Use friendly closings: "Best wishes," "Take care," "Looking forward to it!"
+- Include positive language and expressions
+- Show genuine interest and engagement
+- Use exclamation points appropriately for enthusiasm
+- Make the recipient feel valued""",
+        "apologetic": """- Start with acknowledgment: "I apologize," "I'm sorry," "I understand your concern"
+- Take full responsibility without excuses
+- Show genuine understanding and empathy
+- Use phrases like: "I understand how this must have," "I take full responsibility"
+- Focus on solutions and next steps
+- Maintain professionalism while showing remorse
+- Avoid defensive language""",
+        "urgent": """- Get to the point quickly in the opening
+- Use direct language: "I need," "Please," "As soon as possible"
+- Clearly state deadlines or timeframes
+- Emphasize importance without panic
+- Use action-oriented language
+- Make action items very clear
+- Can use phrases like: "Time-sensitive," "Urgent," "Immediate attention needed" """,
+        "diplomatic": """- Use careful, measured language
+- Avoid direct accusations or confrontations
+- Use phrases like: "I understand your perspective," "I see where you're coming from"
+- Present multiple viewpoints when appropriate
+- Use softening language: "Perhaps," "It might be worth considering," "I wonder if"
+- Maintain respect for all parties
+- Focus on finding common ground""",
+        "enthusiastic": """- Use positive, energetic language throughout
+- Include exclamation points appropriately
+- Use phrases like: "I'm excited to," "This is great," "I'm thrilled"
+- Show genuine excitement and positivity
+- Use celebratory language when appropriate
+- Make the recipient feel the enthusiasm
+- Keep energy high but professional""",
+        "brief": """- Get straight to the point in the first sentence
+- Eliminate unnecessary words and phrases
+- Use short, direct sentences
+- Skip lengthy greetings if not necessary
+- Focus only on essential information
+- Use concise closings: "Thanks," "Best," or minimal closing
+- Maximum efficiency in communication""",
+    }
+    return tone_guidelines.get(tone.lower(), """- Use standard business greetings
+- Maintain professional but approachable tone
+- Use clear, direct communication
+- Balance professionalism with friendliness""")
 
 
 class ToneAdjustmentService:
@@ -52,20 +141,30 @@ class ToneAdjustmentService:
 
     async def adjust_tone(self, original_response: str, target_tone: str, options: Dict[str, Any]) -> Dict[str, Any]:
         description = TONE_DESCRIPTIONS.get(target_tone.lower(), target_tone)
+        tone_guidelines = get_tone_guidelines(target_tone)
         prompt = f"""Rewrite this email response to be {description}.
 
 ORIGINAL RESPONSE:
 "{original_response}"
 
+TARGET TONE: {target_tone}
+TONE CHARACTERISTICS:
+{description}
+
 REQUIREMENTS:
-- Keep the same meaning and intent
+- Keep the same meaning and intent completely intact
 - Maintain the same length (approximately)
-- Use the target tone: {target_tone}
+- Use the target tone: {target_tone} consistently throughout
 - Make it sound natural and human-like
-- Preserve any important details or questions
+- Preserve any important details, questions, or action items
+- Maintain the same level of formality/informality as the target tone requires
+- Ensure the tone change feels natural and appropriate
+
+TONE-SPECIFIC GUIDELINES:
+{tone_guidelines}
 
 OUTPUT FORMAT:
-Just provide the rewritten response, nothing else.
+Just provide the rewritten response, nothing else. Do not include explanations or metadata.
 
 REWRITTEN RESPONSE:"""
 

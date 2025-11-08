@@ -21,6 +21,7 @@ from app.core.logging import get_logger
 from app.models import SmartReplySuggestion
 from app.services.ai_responses import AIResponseService
 from app.services.embeddings import EmbeddingService
+from app.services.tone import get_tone_guidelines
 from app.services.vector_store import VectorStore
 
 logger = get_logger(__name__)
@@ -115,6 +116,7 @@ class EmailProcessingChains:
         # Step 3: Create enhanced prompt with context
         tone = options.get("tone", "professional")
         tone_description = self._get_tone_description(tone)
+        tone_guidelines = get_tone_guidelines(tone)
         number_of_responses = options.get("numberOfResponses", 3)
         
         email_content = email_data.get('content') or email_data.get('body') or email_data.get('snippet') or ""
@@ -130,19 +132,24 @@ Your task is to create full email replies that:
 - Are contextual and relevant to the original email
 - Use context from similar emails to create more informed responses
 - Include appropriate greetings, body, and closings when natural
-- Range from 2-5 sentences typically (but can be longer if needed for clarity)
+- Range from 3-8 sentences typically (but can be longer if needed for clarity and completeness)
 - Sound natural, human-like, and professional
 - Directly address what the user wants to communicate
 
 Generate {number_of_responses} complete, ready-to-send email responses that:
 1. Follow the user's instruction precisely ("{user_instruction}")
-2. Are complete email responses (not just short phrases)
+2. Are complete email responses (not just short phrases) - typically 3-8 sentences or more
 3. Match the {tone} tone throughout
 4. Are contextual and directly respond to the original email
 5. Use information from similar emails as context when relevant
 6. Include appropriate greetings and closings when natural
 7. Are specific to the email content and situation
 8. Are well-written, natural, and professional
+9. Include all necessary details and context to make responses complete and actionable
+10. Do NOT limit response length - write as much as needed for clarity and completeness
+
+TONE GUIDELINES FOR {tone}:
+{tone_guidelines}
 
 OUTPUT FORMAT (JSON):
 {{
@@ -163,7 +170,9 @@ OUTPUT FORMAT (JSON):
     "userIntent": "summary of what user wants to communicate",
     "contextUsed": true or false
   }}
-}}"""
+}}
+
+Remember: Generate COMPLETE email responses that directly follow the user's instruction. Each response should be a full, ready-to-send email that matches the {tone} tone throughout."""
 
         human_template = """ORIGINAL EMAIL:
 ---
@@ -189,6 +198,7 @@ Remember: Generate COMPLETE email responses that directly follow the user's inst
         # Format prompt
         formatted_messages = prompt.format_messages(
             tone_description=tone_description,
+            tone_guidelines=tone_guidelines,
             number_of_responses=number_of_responses,
             user_instruction=user_instruction,
             tone=tone,
@@ -200,6 +210,8 @@ Remember: Generate COMPLETE email responses that directly follow the user's inst
         )
         
         # Execute with JSON mode
+        # Increased max_tokens to allow for longer, more complete email responses
+        max_response_tokens = 4000
         try:
             llm_json = ChatOpenAI(
                 model=self.settings.openai_model,
@@ -207,7 +219,7 @@ Remember: Generate COMPLETE email responses that directly follow the user's inst
                 openai_api_key=self.settings.openai_api_key,
                 base_url=self.settings.openai_base_url,
                 model_kwargs={"response_format": {"type": "json_object"}},
-                max_tokens=1200,
+                max_tokens=max_response_tokens,
             )
             response = await llm_json.ainvoke(formatted_messages)
             response_text = response.content if hasattr(response, 'content') else str(response)

@@ -418,6 +418,33 @@ class SmartEmailManager {
             createLabelBtn.addEventListener('click', () => this.showLabelModal());
         }
 
+        // System labels (categories) button
+        const viewSystemLabelsBtn = document.getElementById('viewSystemLabelsBtn');
+        if (viewSystemLabelsBtn) {
+            viewSystemLabelsBtn.addEventListener('click', () => this.showSystemLabelsModal());
+        }
+
+        // System labels modal close buttons
+        const systemLabelsModalClose = document.getElementById('systemLabelsModalClose');
+        const systemLabelsCloseBtn = document.getElementById('systemLabelsCloseBtn');
+        if (systemLabelsModalClose) {
+            systemLabelsModalClose.addEventListener('click', () => this.hideSystemLabelsModal());
+        }
+        if (systemLabelsCloseBtn) {
+            systemLabelsCloseBtn.addEventListener('click', () => this.hideSystemLabelsModal());
+        }
+
+        // Close system labels modal on overlay click
+        const systemLabelsModal = document.getElementById('systemLabelsModal');
+        if (systemLabelsModal && !systemLabelsModal.hasAttribute('data-listener-added')) {
+            systemLabelsModal.addEventListener('click', (e) => {
+                if (e.target === systemLabelsModal) {
+                    this.hideSystemLabelsModal();
+                }
+            });
+            systemLabelsModal.setAttribute('data-listener-added', 'true');
+        }
+
         const labelModalClose = document.getElementById('labelModalClose');
         const labelCancelBtn = document.getElementById('labelCancelBtn');
         if (labelModalClose) {
@@ -658,18 +685,19 @@ class SmartEmailManager {
             const confidence = email.categoryConfidence || 0.5;
             const def = this.getCategoryDefinition(category);
             
-            // Category badge - now shows text tag instead of just icon
-            const categoryBadge = `
+            // Get labels for this email (from ChromaDB metadata)
+            const emailLabels = this.getEmailLabels(email);
+            const labelsHTML = this.formatLabelsHTML(emailLabels);
+            
+            // Only show category badge if there are no custom labels
+            // If custom labels exist, they replace the category badge
+            const categoryBadge = emailLabels.length === 0 ? `
                 <span class="email-type-tag category-${category}" 
                       style="background-color: ${def.color}; color: white; border: 1px solid ${def.color};"
                       title="${def.description}">
                     ${def.name}
                 </span>
-            `;
-            
-            // Get labels for this email
-            const emailLabels = this.getEmailLabels(email);
-            const labelsHTML = this.formatLabelsHTML(emailLabels);
+            ` : '';
             
             // Mark as unread/bold if needed (you can add logic here)
             const isUnread = false; // TODO: Add unread tracking
@@ -685,7 +713,7 @@ class SmartEmailManager {
                      aria-label="Email from ${senderDisplay}, subject: ${subjectDisplay}"
                      aria-describedby="email-snippet-${email.id}">
                     <div class="email-row-from-col">
-                        <div class="email-row-category-tag">${categoryBadge}</div>
+                        ${categoryBadge ? `<div class="email-row-category-tag">${categoryBadge}</div>` : ''}
                         ${labelsHTML ? `<div class="email-row-labels">${labelsHTML}</div>` : ''}
                         <div class="email-row-from">${senderDisplay}</div>
                         </div>
@@ -2072,11 +2100,25 @@ class SmartEmailManager {
             return;
         }
         
-        // Count emails by category
+        // Count emails by category (system categories)
         const categoryCounts = {};
+        // Count emails by custom labels (from ChromaDB metadata)
+        const labelCounts = {};
+        
         emails.forEach(email => {
-            const category = email.category || 'other';
-            categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+            // Count system categories (only if no custom label is applied)
+            const emailLabels = this.getEmailLabels(email);
+            if (emailLabels.length === 0) {
+                // Only count system category if no custom label exists
+                const category = email.category || 'other';
+                categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+            } else {
+                // Count custom labels
+                emailLabels.forEach(label => {
+                    const labelName = label.name || label.id;
+                    labelCounts[labelName] = (labelCounts[labelName] || 0) + 1;
+                });
+            }
         });
         
         // Display statistics in new panel
@@ -2089,32 +2131,69 @@ class SmartEmailManager {
         // Update total
         totalElement.textContent = emails.length;
         
-        // Create statistics HTML
-        const statsHTML = Object.entries(categoryCounts)
-            .sort((a, b) => b[1] - a[1]) // Sort by count
-            .map(([category, count]) => {
-                const percentage = ((count / emails.length) * 100).toFixed(1);
-                const def = this.getCategoryDefinition(category);
-                const barWidth = Math.max(percentage, 5); // Minimum 5% width for visibility
-                
-                return `
-                    <div class="email-type-stat-item" 
-                         data-category="${category}" 
-                         title="${def.description}"
-                         role="button"
-                         tabindex="0">
-                        <div class="email-type-stat-info">
-                            <span class="email-type-stat-name">${def.name}</span>
-                            <span class="email-type-stat-count">${count}</span>
-                        </div>
-                        <div class="email-type-stat-bar-container">
-                            <div class="email-type-stat-bar" 
-                                 style="width: ${barWidth}%; background-color: ${def.color};"></div>
-                        </div>
-                        <div class="email-type-stat-percentage">${percentage}%</div>
+        // Create statistics HTML - combine system categories and custom labels
+        const allStats = [];
+        
+        // Add system categories
+        Object.entries(categoryCounts).forEach(([category, count]) => {
+            const percentage = ((count / emails.length) * 100).toFixed(1);
+            const def = this.getCategoryDefinition(category);
+            allStats.push({
+                name: def.name,
+                key: category,
+                count: count,
+                percentage: percentage,
+                color: def.color,
+                description: def.description,
+                isLabel: false
+            });
+        });
+        
+        // Add custom labels
+        Object.entries(labelCounts).forEach(([labelName, count]) => {
+            const percentage = ((count / emails.length) * 100).toFixed(1);
+            // Find the label to get its color
+            const label = this.allLabels.find(l => l.name === labelName || l.id === labelName);
+            const color = label ? (label.color || '#6b7280') : '#6b7280';
+            const description = label ? (label.description || labelName) : labelName;
+            
+            allStats.push({
+                name: labelName,
+                key: `label:${labelName}`,
+                count: count,
+                percentage: percentage,
+                color: color,
+                description: description,
+                isLabel: true
+            });
+        });
+        
+        // Sort by count (descending)
+        allStats.sort((a, b) => b.count - a.count);
+        
+        // Create HTML
+        const statsHTML = allStats.map(stat => {
+            const barWidth = Math.max(stat.percentage, 5); // Minimum 5% width for visibility
+            
+            return `
+                <div class="email-type-stat-item" 
+                     data-category="${stat.key}" 
+                     data-is-label="${stat.isLabel}"
+                     title="${stat.description}"
+                     role="button"
+                     tabindex="0">
+                    <div class="email-type-stat-info">
+                        <span class="email-type-stat-name">${stat.name}</span>
+                        <span class="email-type-stat-count">${stat.count}</span>
                     </div>
-                `;
-            }).join('');
+                    <div class="email-type-stat-bar-container">
+                        <div class="email-type-stat-bar" 
+                             style="width: ${barWidth}%; background-color: ${stat.color};"></div>
+                    </div>
+                    <div class="email-type-stat-percentage">${stat.percentage}%</div>
+                </div>
+            `;
+        }).join('');
         
         statsList.innerHTML = statsHTML;
         statsContainer.style.display = 'block';
@@ -2123,7 +2202,8 @@ class SmartEmailManager {
         document.querySelectorAll('.email-type-stat-item').forEach(item => {
             item.addEventListener('click', (e) => {
                 const category = e.currentTarget.dataset.category;
-                this.filterByCategory(category);
+                const isLabel = e.currentTarget.dataset.isLabel === 'true';
+                this.filterByCategory(category, isLabel);
             });
             
             // Keyboard support
@@ -2131,23 +2211,99 @@ class SmartEmailManager {
                 if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
                     const category = e.currentTarget.dataset.category;
-                    this.filterByCategory(category);
+                    const isLabel = e.currentTarget.dataset.isLabel === 'true';
+                    this.filterByCategory(category, isLabel);
                 }
             });
         });
     }
 
-    async filterByCategory(category) {
-        if (category === 'all' || !category) {
-            // Show all emails - perform search without category filter
-            await this.performSearchWithCategory(null);
-            const showAllBtn = document.getElementById('showAllEmailsBtn');
-            if (showAllBtn) showAllBtn.style.display = 'none';
+    async filterByCategory(category, isLabel = false) {
+        const resultsContainer = document.getElementById('emailResults');
+        const showAllBtn = document.getElementById('showAllEmailsBtn');
+        
+        // If no emails are currently displayed, load them first
+        if (!resultsContainer || resultsContainer.children.length === 0 || !this.currentEmailList || this.currentEmailList.length === 0) {
+            // No emails loaded yet, perform search to load emails
+            if (category === 'all' || !category) {
+                await this.performSearchWithCategory(null);
+                if (showAllBtn) showAllBtn.style.display = 'none';
+            } else {
+                await this.performSearchWithCategory(category);
+                if (showAllBtn) showAllBtn.style.display = 'block';
+            }
+            return;
+        }
+        
+        // Filter existing emails in DOM instead of re-rendering
+        const emailRows = resultsContainer.querySelectorAll('.email-row');
+        let visibleCount = 0;
+        
+        emailRows.forEach(row => {
+            const emailId = row.getAttribute('data-email-id');
+            const rowCategory = row.getAttribute('data-category') || 'other';
+            
+            if (category === 'all' || !category) {
+                // Show all emails
+                row.style.display = '';
+                visibleCount++;
+            } else if (isLabel) {
+                // Filter by custom label - check if email has this label
+                const labelName = category.replace('label:', '');
+                const email = this.currentEmailList.find(e => e.id === emailId);
+                if (email) {
+                    const emailLabels = this.getEmailLabels(email);
+                    const hasLabel = emailLabels.some(label => label.name === labelName);
+                    if (hasLabel) {
+                        row.style.display = '';
+                        visibleCount++;
+                    } else {
+                        row.style.display = 'none';
+                    }
+                } else {
+                    row.style.display = 'none';
+                }
+            } else {
+                // Filter by system category
+                if (rowCategory === category) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            }
+        });
+        
+        // Update results count
+        this.showResultsCount(visibleCount);
+        
+        // Update show all button visibility
+        if (showAllBtn) {
+            if (category === 'all' || !category) {
+                showAllBtn.style.display = 'none';
+            } else {
+                showAllBtn.style.display = 'block';
+            }
+        }
+        
+        // Show appropriate message
+        if (category && category !== 'all') {
+            if (isLabel) {
+                const labelName = category.replace('label:', '');
+                this.showMessage(`Showing ${visibleCount} email${visibleCount !== 1 ? 's' : ''} with label "${labelName}"`, 'info', 2000);
+            } else {
+                const def = this.getCategoryDefinition(category);
+                this.showMessage(`Showing ${visibleCount} ${def.name.toLowerCase()} email${visibleCount !== 1 ? 's' : ''}`, 'info', 2000);
+            }
         } else {
-            // Search with category filter (will use Redis cache if available)
-            await this.performSearchWithCategory(category);
-            const showAllBtn = document.getElementById('showAllEmailsBtn');
-            if (showAllBtn) showAllBtn.style.display = 'block';
+            this.showMessage(`Showing all ${visibleCount} email${visibleCount !== 1 ? 's' : ''}`, 'info', 2000);
+        }
+        
+        // Hide empty state if there are visible emails
+        if (visibleCount > 0) {
+            this.hideEmptyState();
+        } else {
+            this.showEmptyState();
         }
     }
 
@@ -2296,33 +2452,8 @@ class SmartEmailManager {
         const labelsList = document.getElementById('labelsList');
         if (!labelsList) return;
 
-        if (!this.allLabels || this.allLabels.length === 0) {
-            labelsList.innerHTML = '<div style="color: #64748b; font-size: 0.9rem; padding: 10px; text-align: center;">No labels yet. Create one to get started!</div>';
-            return;
-        }
-
-        labelsList.innerHTML = this.allLabels.map(label => {
-            const color = label.color || '#6b7280';
-            return `
-                <div class="label-item" data-label-id="${label.id}">
-                    <div class="label-item-header">
-                        <span class="label-badge" style="background-color: ${color};">
-                            ${label.name}
-                        </span>
-                        <span class="label-email-count">${label.emailCount || 0} emails</span>
-                    </div>
-                    <div class="label-item-description">${label.description || ''}</div>
-                    <div class="label-item-actions">
-                        <button class="apply-label-btn action-btn btn-secondary btn-small" data-label-id="${label.id}" title="Apply this label to matching emails">
-                            🔍 Auto-Apply
-                        </button>
-                        <button class="delete-label-btn action-btn btn-danger btn-small" data-label-id="${label.id}" title="Delete this label">
-                            🗑️ Delete
-                        </button>
-                    </div>
-                </div>
-            `;
-        }).join('');
+        // Hide labels list - all labels are shown in the popup instead
+        labelsList.innerHTML = '<div style="color: #64748b; font-size: 0.9rem; padding: 10px; text-align: center;">Click "View Categories" to see all labels and categories.</div>';
     }
 
     showLabelModal() {
@@ -2392,6 +2523,11 @@ class SmartEmailManager {
             this.showMessage(`Label "${name}" created successfully!`, 'success', 3000);
             this.hideLabelModal();
             await this.loadAllLabels();
+            // Refresh popup if it's open
+            const systemLabelsModal = document.getElementById('systemLabelsModal');
+            if (systemLabelsModal && systemLabelsModal.style.display !== 'none') {
+                await this.loadSystemLabels();
+            }
         } catch (error) {
             console.error('Error creating label:', error);
             this.showMessage(`Failed to create label: ${error.message}`, 'error');
@@ -2425,6 +2561,11 @@ class SmartEmailManager {
             const data = await response.json();
             this.showMessage(`Label applied to ${data.emailCount || 0} emails!`, 'success', 3000);
             await this.loadAllLabels();
+            // Refresh popup if it's open
+            const systemLabelsModal = document.getElementById('systemLabelsModal');
+            if (systemLabelsModal && systemLabelsModal.style.display !== 'none') {
+                await this.loadSystemLabels();
+            }
             // Refresh email list to show updated labels
             this.performSearch();
         } catch (error) {
@@ -2459,6 +2600,11 @@ class SmartEmailManager {
 
             this.showMessage(`Label "${label.name}" deleted successfully!`, 'success', 3000);
             await this.loadAllLabels();
+            // Refresh popup if it's open
+            const systemLabelsModal = document.getElementById('systemLabelsModal');
+            if (systemLabelsModal && systemLabelsModal.style.display !== 'none') {
+                await this.loadSystemLabels();
+            }
             // Refresh email list
             this.performSearch();
         } catch (error) {
@@ -2472,11 +2618,21 @@ class SmartEmailManager {
     // Get labels for an email (from metadata)
     getEmailLabels(email) {
         if (!email || !this.allLabels || !this.allLabels.length) return [];
+        
+        // Get labels from email metadata (stored in ChromaDB)
+        // This is a string of comma-separated label IDs
         const labelsStr = email.labels || '';
         if (!labelsStr || labelsStr.trim() === '') return [];
+        
+        // Parse label IDs from the string
         const labelIds = labelsStr.split(',').map(id => id.trim()).filter(id => id && id !== '');
         if (labelIds.length === 0) return [];
-        return this.allLabels.filter(label => labelIds.includes(label.id));
+        
+        // Only return labels that match the IDs in the email's metadata
+        // This ensures we only show labels that are actually assigned to this email in ChromaDB
+        const matchedLabels = this.allLabels.filter(label => labelIds.includes(label.id));
+        
+        return matchedLabels;
     }
 
     // Format labels HTML for display
@@ -2486,6 +2642,124 @@ class SmartEmailManager {
             const color = label.color || '#6b7280';
             return `<span class="email-label-badge" style="background-color: ${color};" title="${label.description || label.name}">${label.name}</span>`;
         }).join('');
+    }
+
+    // ========== System Labels (Categories) Functions ==========
+
+    async showSystemLabelsModal() {
+        const modal = document.getElementById('systemLabelsModal');
+        if (!modal) return;
+
+        modal.style.display = 'flex';
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+
+        // Load system labels
+        await this.loadSystemLabels();
+    }
+
+    hideSystemLabelsModal() {
+        const modal = document.getElementById('systemLabelsModal');
+        if (modal) {
+            modal.style.display = 'none';
+            modal.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+        }
+    }
+
+    async loadSystemLabels() {
+        const systemLabelsList = document.getElementById('systemLabelsList');
+        if (!systemLabelsList) return;
+
+        try {
+            // Show loading state
+            systemLabelsList.innerHTML = '<div style="text-align: center; padding: 20px; color: #64748b;">Loading categories...</div>';
+
+            // Fetch both system labels and custom labels
+            const [systemResponse, customResponse] = await Promise.all([
+                fetch(`${this.apiBaseUrl}/labels/system`),
+                fetch(`${this.apiBaseUrl}/labels`)
+            ]);
+
+            if (!systemResponse.ok) {
+                throw new Error('Failed to load system labels');
+            }
+            if (!customResponse.ok) {
+                throw new Error('Failed to load custom labels');
+            }
+
+            const systemData = await systemResponse.json();
+            const customData = await customResponse.json();
+            
+            const systemLabels = systemData.labels || [];
+            const customLabels = customData.labels || [];
+
+            if (systemLabels.length === 0 && customLabels.length === 0) {
+                systemLabelsList.innerHTML = '<div style="text-align: center; padding: 20px; color: #64748b;">No categories or labels found.</div>';
+                return;
+            }
+
+            let html = '';
+
+            // Display system labels section
+            if (systemLabels.length > 0) {
+                html += '<div class="labels-section-header" style="margin-top: 0;">System Categories (Read-Only)</div>';
+                html += systemLabels.map(label => {
+                    const color = label.color || '#6b7280';
+                    return `
+                        <div class="system-label-item" data-label-id="${label.id}">
+                            <div class="system-label-item-header">
+                                <span class="system-label-badge" style="background-color: ${color};">
+                                    ${label.name}
+                                    <span class="system-label-readonly-badge" title="System category - read only">🔒</span>
+                                </span>
+                            </div>
+                            <div class="system-label-item-description">${label.description || ''}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Display custom labels section
+            if (customLabels.length > 0) {
+                html += '<div class="labels-section-header">Custom Labels</div>';
+                html += customLabels.map(label => {
+                    const color = label.color || '#6b7280';
+                    return `
+                        <div class="system-label-item custom-label-item" data-label-id="${label.id}">
+                            <div class="system-label-item-header">
+                                <span class="system-label-badge" style="background-color: ${color};">
+                                    ${label.name}
+                                </span>
+                                <span class="label-email-count" style="font-size: 0.8rem; color: #64748b; margin-left: auto;">${label.emailCount || 0} emails</span>
+                            </div>
+                            <div class="system-label-item-description">
+                                <strong>Description:</strong> ${label.description || 'No description'}
+                            </div>
+                            ${label.prompt ? `
+                            <div class="system-label-item-prompt" style="font-size: 0.85rem; color: #64748b; margin-top: 8px; padding-top: 8px; border-top: 1px solid #e2e8f0;">
+                                <strong>Prompt:</strong> ${label.prompt}
+                            </div>
+                            ` : ''}
+                            <div class="label-item-actions" style="margin-top: 10px;">
+                                <button class="apply-label-btn action-btn btn-secondary btn-small" data-label-id="${label.id}" title="Apply this label to matching emails">
+                                    🔍 Apply
+                                </button>
+                                <button class="delete-label-btn action-btn btn-danger btn-small" data-label-id="${label.id}" title="Delete this label">
+                                    🗑️ Delete
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            systemLabelsList.innerHTML = html;
+
+        } catch (error) {
+            console.error('Error loading labels:', error);
+            systemLabelsList.innerHTML = '<div style="text-align: center; padding: 20px; color: #ef4444;">Failed to load categories. Please try again.</div>';
+        }
     }
 }
 

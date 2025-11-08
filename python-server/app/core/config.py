@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     openai_api_key: Optional[str] = Field(default=None, alias="OPENAI_API_KEY")
     openai_base_url: Optional[str] = Field(default=None, alias="OPENAI_BASE_URL")
     openai_model: str = Field(default="gpt-4o-mini", alias="MODEL")
-    max_response_tokens: int = Field(default=500, alias="MAX_RESPONSE_TOKENS")
+    max_response_tokens: int = Field(default=4000, alias="MAX_RESPONSE_TOKENS")
 
     # Embeddings
     embedding_api_key: Optional[str] = Field(default=None, alias="OPEN_API_KEY_FOR_TEXT_EMBEDDING")

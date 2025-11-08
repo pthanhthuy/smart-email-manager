@@ -178,12 +178,13 @@ class AIResponseService:
         # Get tone from options, default to professional
         tone = options.get("tone", "professional")
         tone_description = self._get_tone_description(tone)
+        tone_guidelines = self._get_tone_guidelines(tone)
         
         # Build email content string
         email_content_str = self._build_email_content_string(email_data, options)
         number_of_responses = options.get("numberOfResponses", 3)
         
-        # Create LangChain prompt template
+        # Create LangChain prompt template with enhanced tone guidance
         system_template = """You are an intelligent email assistant that generates complete, professional email responses. 
 Your task is to create full email replies (not just short snippets) that:
 - Are complete, well-written email responses ready to send
@@ -191,26 +192,33 @@ Your task is to create full email replies (not just short snippets) that:
 - Match the requested tone: {tone_description}
 - Are contextual and relevant to the original email
 - Include appropriate greetings, body, and closings when natural
-- Range from 2-5 sentences typically (but can be longer if needed for clarity)
+- Range from 3-8 sentences typically (but can be longer if needed for clarity and completeness)
 - Sound natural, human-like, and professional
 - Directly address what the user wants to communicate
 
 Generate {number_of_responses} complete, ready-to-send email responses that:
 1. Follow the user's instruction precisely ("{user_instruction}")
-2. Are complete email responses (not just short phrases)
+2. Are complete email responses (not just short phrases) - typically 3-8 sentences or more
 3. Match the {tone} tone throughout
 4. Are contextual and directly respond to the original email
 5. Include appropriate greetings and closings when natural
 6. Are specific to the email content and situation
 7. Are well-written, natural, and professional
+8. Include all necessary details and context to make responses complete and actionable
+9. Do NOT limit response length - write as much as needed for clarity and completeness
 
 IMPORTANT:
-- These should be FULL email responses ready to send, typically 2-5 sentences or more if needed
-- Do NOT limit to 10 words - generate complete, thoughtful responses
+- These should be FULL email responses ready to send, typically 3-8 sentences or more if needed for clarity and completeness
+- Do NOT limit response length - generate complete, thoughtful, well-developed responses
 - Base responses DIRECTLY on what the user wants to communicate
 - Make each response distinct and offer different approaches/angles
 - If the user instruction is specific (e.g., "I can attend"), generate variations that express this in different ways
 - If the user instruction is general (e.g., "Generate a helpful response"), create varied appropriate responses
+- Feel free to write longer responses when the situation requires more detail, explanation, or context
+- Include all necessary information to make the response complete and actionable
+
+TONE GUIDELINES FOR {tone}:
+{tone_guidelines}
 
 OUTPUT FORMAT (JSON):
 {{
@@ -232,7 +240,7 @@ OUTPUT FORMAT (JSON):
   }}
 }}
 
-Remember: Generate COMPLETE email responses that directly follow the user's instruction. Each response should be a full, ready-to-send email."""
+Remember: Generate COMPLETE email responses that directly follow the user's instruction. Each response should be a full, ready-to-send email that matches the {tone} tone throughout."""
 
         human_template = """ORIGINAL EMAIL:
 ---
@@ -255,6 +263,7 @@ REQUESTED TONE: {tone}"""
         # Format prompt with variables
         formatted_prompt = prompt.format_messages(
             tone_description=tone_description,
+            tone_guidelines=tone_guidelines,
             number_of_responses=number_of_responses,
             user_instruction=user_instruction,
             tone=tone,
@@ -267,6 +276,8 @@ REQUESTED TONE: {tone}"""
         start = time.monotonic()
         
         # Use LangChain with JSON mode for structured output
+        # Increased max_tokens to allow for longer, more complete email responses
+        max_response_tokens = 4000
         try:
             # Try with structured output first
             llm_json = ChatOpenAI(
@@ -275,7 +286,7 @@ REQUESTED TONE: {tone}"""
                 openai_api_key=self.settings.openai_api_key,
                 base_url=self.settings.openai_base_url,
                 model_kwargs={"response_format": {"type": "json_object"}},
-                max_tokens=1200,
+                max_tokens=max_response_tokens,
             )
             response = await llm_json.ainvoke(formatted_prompt)
             response_text = response.content if hasattr(response, 'content') else str(response)
@@ -288,7 +299,7 @@ REQUESTED TONE: {tone}"""
         except Exception as e:
             logger.warning("Structured output failed, using fallback: %s", e)
             # Fallback: use regular LLM call with formatted messages
-            result = await self._chat_completion(formatted_prompt, max_tokens=1200)
+            result = await self._chat_completion(formatted_prompt, max_tokens=max_response_tokens)
             parsed = self._parse_ai_response(result["text"])
             # Create a dummy response object for usage extraction
             response = type('obj', (object,), {
@@ -372,6 +383,93 @@ REQUESTED TONE: {tone}"""
             "enthusiastic": "enthusiastic and positive, showing excitement",
         }
         return tone_descriptions.get(tone.lower(), "professional but approachable")
+
+    def _get_tone_guidelines(self, tone: str) -> str:
+        """Get tone-specific guidelines for use in prompts."""
+        tone_guidelines = {
+            "very formal": """- Use formal titles (Mr., Ms., Dr., etc.) when appropriate
+- Avoid contractions (use "cannot" instead of "can't", "I will" instead of "I'll")
+- Use formal salutations: "Dear [Title] [Last Name]," or "Dear Sir/Madam,"
+- Use formal closings: "Respectfully yours," "Sincerely," "Yours faithfully,"
+- Structure sentences formally with complete thoughts
+- Avoid casual expressions or colloquialisms
+- Use passive voice when appropriate for formality
+- Maintain respectful distance and professional boundaries""",
+            "formal": """- Use appropriate titles and formal greetings
+- Prefer "cannot" over "can't" but contractions are acceptable in moderation
+- Use standard business closings: "Best regards," "Sincerely," "Regards,"
+- Maintain professional structure and formatting
+- Use clear, direct language
+- Avoid overly casual expressions
+- Keep a respectful, professional tone""",
+            "professional": """- Use standard business greetings: "Hi [Name]," or "Hello [Name],"
+- Contractions are acceptable and natural
+- Use professional but friendly closings: "Best regards," "Best," "Thanks,"
+- Balance professionalism with approachability
+- Use clear, direct communication
+- Can be slightly more conversational than formal
+- Maintain business-appropriate language""",
+            "casual": """- Use friendly greetings: "Hi [Name]," "Hey [Name]," or just "[Name],"
+- Contractions are natural and expected
+- Use casual closings: "Thanks," "Best," "Talk soon," "Cheers,"
+- Can use more conversational language
+- Structure can be more relaxed
+- Still maintain professionalism and respect
+- Can include friendly expressions""",
+            "very casual": """- Use very relaxed greetings: "Hey," "Hi there," or just start with the message
+- Contractions are natural and frequent
+- Use very casual closings: "Thanks!", "See you!", "Talk later," or no closing
+- Very conversational, like talking to a friend
+- Can use casual expressions and idioms
+- Relaxed sentence structure
+- Warm and friendly throughout""",
+            "friendly": """- Use warm greetings: "Hi [Name]!," "Hello [Name]!," with enthusiasm
+- Show personality and warmth
+- Use friendly closings: "Best wishes," "Take care," "Looking forward to it!"
+- Include positive language and expressions
+- Show genuine interest and engagement
+- Use exclamation points appropriately for enthusiasm
+- Make the recipient feel valued""",
+            "apologetic": """- Start with acknowledgment: "I apologize," "I'm sorry," "I understand your concern"
+- Take full responsibility without excuses
+- Show genuine understanding and empathy
+- Use phrases like: "I understand how this must have," "I take full responsibility"
+- Focus on solutions and next steps
+- Maintain professionalism while showing remorse
+- Avoid defensive language""",
+            "urgent": """- Get to the point quickly in the opening
+- Use direct language: "I need," "Please," "As soon as possible"
+- Clearly state deadlines or timeframes
+- Emphasize importance without panic
+- Use action-oriented language
+- Make action items very clear
+- Can use phrases like: "Time-sensitive," "Urgent," "Immediate attention needed" """,
+            "diplomatic": """- Use careful, measured language
+- Avoid direct accusations or confrontations
+- Use phrases like: "I understand your perspective," "I see where you're coming from"
+- Present multiple viewpoints when appropriate
+- Use softening language: "Perhaps," "It might be worth considering," "I wonder if"
+- Maintain respect for all parties
+- Focus on finding common ground""",
+            "enthusiastic": """- Use positive, energetic language throughout
+- Include exclamation points appropriately
+- Use phrases like: "I'm excited to," "This is great," "I'm thrilled"
+- Show genuine excitement and positivity
+- Use celebratory language when appropriate
+- Make the recipient feel the enthusiasm
+- Keep energy high but professional""",
+            "brief": """- Get straight to the point in the first sentence
+- Eliminate unnecessary words and phrases
+- Use short, direct sentences
+- Skip lengthy greetings if not necessary
+- Focus only on essential information
+- Use concise closings: "Thanks," "Best," or minimal closing
+- Maximum efficiency in communication""",
+        }
+        return tone_guidelines.get(tone.lower(), """- Use standard business greetings
+- Maintain professional but approachable tone
+- Use clear, direct communication
+- Balance professionalism with friendliness""")
 
 
     async def generate_email_summary(self, email_data: Dict[str, Any], options: Dict[str, Any]) -> Dict[str, Any]:

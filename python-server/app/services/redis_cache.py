@@ -174,6 +174,47 @@ class RedisCacheService:
         deleted = self.invalidate_cache("search:cache:*")
         return deleted >= 0
 
+    def find_cache_to_filter(self, category: str) -> Optional[Dict[str, Any]]:
+        """Find a cached result that can be filtered by category.
+        
+        Returns the most recently updated cache entry that has results to filter.
+        """
+        if not self.redis_client or not self.settings.redis_enabled:
+            return None
+        
+        try:
+            keys = self.redis_client.keys("search:cache:*")
+            if not keys:
+                return None
+            
+            # Find the most recently updated cache entry
+            most_recent = None
+            most_recent_time = None
+            
+            for key in keys:
+                try:
+                    cached_data = self.redis_client.get(key)
+                    if cached_data:
+                        cache_entry = json.loads(cached_data)
+                        updated_at = cache_entry.get("updatedAt") or cache_entry.get("cachedAt")
+                        if updated_at:
+                            # Parse ISO format datetime
+                            try:
+                                update_time = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
+                                if most_recent_time is None or update_time > most_recent_time:
+                                    most_recent_time = update_time
+                                    most_recent = cache_entry
+                            except (ValueError, AttributeError):
+                                # If we can't parse the date, skip this entry
+                                continue
+                except Exception:
+                    continue
+            
+            return most_recent
+        except Exception as e:
+            logger.warning("Error finding cache to filter: %s", e)
+            return None
+
     def get_cache_stats(self) -> Dict[str, Any]:
         """Get cache statistics."""
         if not self.redis_client or not self.settings.redis_enabled:

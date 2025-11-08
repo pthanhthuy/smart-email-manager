@@ -164,6 +164,74 @@ async def semantic_search(
             force_refresh,
         )
 
+        # When filtering by category (empty query + category), try to use cached results
+        # and filter them in-memory instead of querying ChromaDB
+        if not normalized_query and category and settings.redis_enabled and not force_refresh:
+            # First, check for cached "all emails" result (empty query, no category)
+            cached_all_emails = cache_service.get_cache(
+                query="",
+                category=None,
+                limit=payload.limit,
+            )
+            cache_to_filter = cached_all_emails
+            
+            # If no "all emails" cache, find the most recent cache entry to filter
+            if not cache_to_filter:
+                cache_to_filter = cache_service.find_cache_to_filter(category)
+                if cache_to_filter:
+                    logger.info(
+                        "Found cached result from query '%s' to filter by category '%s'",
+                        cache_to_filter.get("query", "unknown"),
+                        category,
+                    )
+            
+            if cache_to_filter:
+                logger.info(
+                    "Filtering cached result by category '%s' (in-memory filter)",
+                    category,
+                )
+                # Filter cached results by category in-memory
+                filtered_results = [
+                    email for email in cache_to_filter.get("results", [])
+                    if email.get("category") == category
+                ]
+                
+                # Apply limit if specified
+                if payload.limit and len(filtered_results) > payload.limit:
+                    filtered_results = filtered_results[:payload.limit]
+                
+                response_data = {
+                    "success": True,
+                    "query": cache_to_filter.get("query", "all"),
+                    "count": len(filtered_results),
+                    "results": filtered_results,
+                    "cached": True,
+                }
+                
+                # Cache the filtered result for future use
+                cache_service.set_cache(
+                    query="",
+                    results=filtered_results,
+                    category=category,
+                    limit=payload.limit,
+                )
+                logger.info(
+                    "Returning %s filtered results from cache (category=%s)",
+                    len(filtered_results),
+                    category,
+                )
+                return response_data
+
+        # Clear all cache when performing a new search with a query (not empty query)
+        # This ensures that category filters after a search will use fresh data, not stale cache
+        if normalized_query and settings.redis_enabled:
+            deleted_count = cache_service.invalidate_cache("search:cache:*")
+            logger.info(
+                "Cleared all cache (%s entries) before performing new search: '%s'",
+                deleted_count,
+                normalized_query[:50],
+            )
+
         # If no query provided, get all emails (sorted by date)
         if not normalized_query:
             logger.info(

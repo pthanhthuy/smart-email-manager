@@ -7,5 +7,38 @@
     "createdAt": "2025-11-07T16:16:06.973343",
     "emailCount": 1,
     "color": "#ff00d0"
+  },
+  "label_64a4d9f5d674": {
+    "id": "label_64a4d9f5d674",
+    "name": "Leet code",
+    "description": "Leet code",
+    "prompt": "Emails from Leet code",
+    "createdAt": "2025-11-08T06:21:15.478411",
+    "emailCount": 1,
+    "color": "#778f00",
+    "isSystem": false,
+    "readOnly": false
+  },
+  "label_ff72323fcde5": {
+    "id": "label_ff72323fcde5",
+    "name": "Google",
+    "description": "Google",
+    "prompt": "Emails from Google",
+    "createdAt": "2025-11-08T06:33:21.177576",
+    "emailCount": 3,
+    "color": "#00ff7b",
+    "isSystem": false,
+    "readOnly": false
+  },
+  "label_4bc2cd3451a3": {
+    "id": "label_4bc2cd3451a3",
+    "name": "Ngrok",
+    "description": "Ngrok",
+    "prompt": "Emails from Ngrok",
+    "createdAt": "2025-11-08T06:38:54.882738",
+    "emailCount": 1,
+    "color": "#2e0b00",
+    "isSystem": false,
+    "readOnly": false
   }
 }

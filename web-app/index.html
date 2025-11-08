@@ -51,13 +51,18 @@
 
 
                 <div class="search-section">
-                    <h3>🏷️ Custom Labels</h3>
+                    <h3>🏷️ Labels & Categories</h3>
                     <div class="labels-section">
-                        <button id="createLabelBtn" class="action-btn btn-primary" style="width: 100%; margin-bottom: 10px;">
-                            ➕ Create New Label
-                        </button>
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <button id="createLabelBtn" class="action-btn btn-primary" style="flex: 1;">
+                                ➕ Create New Label
+                            </button>
+                            <button id="viewSystemLabelsBtn" class="action-btn btn-secondary" style="flex: 1;">
+                                📋 View All Labels
+                            </button>
+                        </div>
                         <div id="labelsList" class="labels-list">
-                            <!-- Labels will be populated here -->
+                            <!-- Labels are shown in popup instead -->
                         </div>
                     </div>
                 </div>
@@ -183,6 +188,30 @@
                         <button type="submit" id="labelSaveBtn" class="action-btn btn-primary">Create Label</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Labels (Categories) Modal -->
+    <div id="systemLabelsModal" class="email-modal-overlay" style="display: none;" aria-hidden="true" role="dialog" aria-modal="true">
+        <div class="email-modal" style="max-width: 700px;">
+            <div class="email-modal-header">
+                <h3>📋 Email Categories</h3>
+                <button class="email-modal-close" id="systemLabelsModalClose" aria-label="Close system labels modal">✕</button>
+            </div>
+            <div class="email-modal-content">
+                <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 20px;">
+                    View all email categories and custom labels. System categories are automatically assigned during email sync and cannot be edited or deleted.
+                </p>
+                <div id="systemLabelsList" class="system-labels-list">
+                    <!-- System labels and custom labels will be populated here -->
+                    <div style="text-align: center; padding: 20px; color: #64748b;">
+                        Loading categories...
+                    </div>
+                </div>
+                <div class="email-modal-actions" style="margin-top: 20px;">
+                    <button type="button" id="systemLabelsCloseBtn" class="action-btn btn-secondary">Close</button>
+                </div>
             </div>
         </div>
     </div>

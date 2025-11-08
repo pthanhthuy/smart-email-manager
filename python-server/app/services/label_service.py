@@ -22,6 +22,20 @@ from app.services.vector_store import VectorStore
 
 logger = get_logger(__name__)
 
+# System categories that should appear as read-only labels
+SYSTEM_CATEGORIES = [
+    {"name": "work", "description": "Professional/work-related emails", "color": "#3b82f6"},
+    {"name": "personal", "description": "Personal communications from friends/family", "color": "#10b981"},
+    {"name": "promotion", "description": "Marketing emails with sales/discounts", "color": "#f59e0b"},
+    {"name": "marketing", "description": "Marketing newsletters and campaigns", "color": "#8b5cf6"},
+    {"name": "newsletter", "description": "Subscribed newsletters and updates", "color": "#06b6d4"},
+    {"name": "notification", "description": "System notifications and alerts", "color": "#6366f1"},
+    {"name": "social", "description": "Social media notifications", "color": "#ec4899"},
+    {"name": "finance", "description": "Financial and banking communications", "color": "#14b8a6"},
+    {"name": "spam", "description": "Unsolicited or suspicious emails", "color": "#ef4444"},
+    {"name": "other", "description": "Uncategorized emails", "color": "#6b7280"},
+]
+
 
 class LabelService:
     """Service for managing custom email labels."""
@@ -64,10 +78,35 @@ class LabelService:
         except Exception as e:
             logger.error("Error saving labels: %s", e)
 
+    def _get_system_labels(self) -> List[Dict[str, Any]]:
+        """Generate system labels from fixed categories."""
+        system_labels = []
+        for category in SYSTEM_CATEGORIES:
+            label_id = f"system_{category['name']}"
+            system_labels.append({
+                "id": label_id,
+                "name": category["name"],
+                "description": category["description"],
+                "prompt": f"Emails categorized as {category['name']}",
+                "createdAt": "2025-01-01T00:00:00Z",  # System creation date
+                "emailCount": 0,  # Not calculated - shown in popup instead
+                "color": category["color"],
+                "isSystem": True,  # Mark as system label
+                "readOnly": True,  # Cannot be edited or deleted
+                "showInPopup": True,  # Indicates this should be shown in a popup/dropdown
+            })
+        return system_labels
+
     async def create_label(
-        self, name: str, description: str, prompt: str, color: Optional[str] = None
+        self,
+        name: str,
+        description: str,
+        prompt: str,
+        color: Optional[str] = None,
+        vector_store: Optional[VectorStore] = None,
+        auto_apply: bool = False,
     ) -> Dict[str, Any]:
-        """Create a new label definition and auto-apply to matching emails."""
+        """Create a new label definition. Auto-apply is optional and must be explicitly enabled."""
         label_id = f"label_{uuid.uuid4().hex[:12]}"
 
         label = {
@@ -78,30 +117,62 @@ class LabelService:
             "createdAt": datetime.utcnow().isoformat(),
             "emailCount": 0,
             "color": color or "#6b7280",
+            "isSystem": False,  # Mark as custom label
+            "readOnly": False,  # Can be edited and deleted
         }
 
         self.labels[label_id] = label
         self._save_labels()
 
-        # Auto-apply label to existing emails
-        logger.info("Auto-applying new label '%s' to existing emails...", name)
-        # Note: auto_apply_label will be called separately via API to avoid blocking
-        # email_count = await self.auto_apply_label(label_id)
-        # label["emailCount"] = email_count
+        # Auto-apply label to existing emails if requested
+        if auto_apply and vector_store:
+            logger.info("Auto-applying new label '%s' to existing emails...", name)
+            count = await self.auto_apply_label(label_id, vector_store)
+            label["emailCount"] = count
+            self._save_labels()
+        elif auto_apply and not vector_store:
+            logger.warning("Auto-apply requested but vector_store not provided for label '%s'", name)
 
         logger.info("Created label '%s' (ID: %s)", name, label_id)
         return label
 
-    def get_all_labels(self) -> List[Dict[str, Any]]:
-        """Get all labels."""
-        return list(self.labels.values())
+    def get_all_labels(self, include_system: bool = True) -> List[Dict[str, Any]]:
+        """Get all labels (system + custom).
+        
+        Args:
+            include_system: If True, includes system labels. If False, only returns custom labels.
+        """
+        custom_labels = list(self.labels.values())
+        
+        if include_system:
+            system_labels = self._get_system_labels()
+            # Return custom labels first, then system labels
+            # System labels will be shown in popup, so they're separated
+            return custom_labels + system_labels
+        
+        return custom_labels
+    
+    def get_system_labels(self) -> List[Dict[str, Any]]:
+        """Get only system labels (for popup display)."""
+        return self._get_system_labels()
 
     def get_label(self, label_id: str) -> Optional[Dict[str, Any]]:
-        """Get specific label."""
+        """Get specific label (system or custom)."""
+        # Check if it's a system label
+        if label_id.startswith("system_"):
+            category_name = label_id.replace("system_", "")
+            system_labels = self._get_system_labels()
+            return next((l for l in system_labels if l["id"] == label_id), None)
+        
+        # Otherwise, get custom label
         return self.labels.get(label_id)
 
     def update_label(self, label_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
-        """Update label definition."""
+        """Update label definition (only for custom labels)."""
+        # Prevent updating system labels
+        if label_id.startswith("system_"):
+            raise ValueError("System labels cannot be updated")
+        
         if label_id not in self.labels:
             raise ValueError(f"Label {label_id} not found")
 
@@ -121,7 +192,11 @@ class LabelService:
         return self.labels[label_id]
 
     def delete_label(self, label_id: str) -> bool:
-        """Delete label definition."""
+        """Delete label definition (only for custom labels)."""
+        # Prevent deleting system labels
+        if label_id.startswith("system_"):
+            raise ValueError("System labels cannot be deleted")
+        
         if label_id not in self.labels:
             return False
 
@@ -179,6 +254,10 @@ Does this email match the label criteria? Answer YES or NO only.""",
 
     async def auto_apply_label(self, label_id: str, vector_store: Optional[VectorStore] = None) -> int:
         """Automatically apply label to all matching emails in ChromaDB."""
+        # Prevent applying system labels (they represent existing categories)
+        if label_id.startswith("system_"):
+            raise ValueError("System labels cannot be applied. They represent existing email categories.")
+        
         if label_id not in self.labels:
             raise ValueError(f"Label {label_id} not found")
 
@@ -303,6 +382,10 @@ Does this email match the label criteria? Answer YES or NO only.""",
         self, label_id: str, email_ids: List[str], vector_store: VectorStore
     ) -> int:
         """Manually apply label to specific emails. Label becomes the email category (classification)."""
+        # Prevent applying system labels
+        if label_id.startswith("system_"):
+            raise ValueError("System labels cannot be applied. They represent existing email categories.")
+        
         if label_id not in self.labels:
             raise ValueError(f"Label {label_id} not found")
 
@@ -370,6 +453,10 @@ Does this email match the label criteria? Answer YES or NO only.""",
         self, label_id: str, email_ids: List[str], vector_store: VectorStore
     ) -> int:
         """Remove label from specific emails."""
+        # Prevent removing system labels (they represent existing categories)
+        if label_id.startswith("system_"):
+            raise ValueError("System labels cannot be removed. They represent existing email categories.")
+        
         collection = vector_store.get_collection()
         removed_count = 0
 
