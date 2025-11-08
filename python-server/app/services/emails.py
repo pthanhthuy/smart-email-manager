@@ -43,23 +43,91 @@ def decode_body(data: Optional[str]) -> str:
 
 
 def extract_email_body(payload: Dict[str, Any]) -> str:
+    """Extract email body from Gmail message payload, avoiding duplicates.
+    
+    Gmail messages can have body content in multiple places:
+    - payload.body.data (for simple emails)
+    - payload.parts[].body.data (for multipart emails)
+    - Sometimes the same content appears in both, causing duplication
+    
+    This function prefers parts over direct body, and deduplicates content.
+    """
     if not payload:
         return ""
 
-    body = ""
-    if payload.get("body", {}).get("data"):
-        body = decode_body(payload["body"]["data"])
-        if payload.get("mimeType") == "text/html":
-            body = html_to_text(body)
+    body_parts = []
+    seen_content = set()  # Track seen content to avoid duplicates
+    
+    # If payload has parts, prefer extracting from parts (more reliable for multipart emails)
+    if payload.get("parts"):
+        # First pass: collect text/plain parts
+        text_parts = []
+        html_parts = []
+        
+        for part in payload.get("parts", []):
+            part_result = _extract_part_body(part, seen_content)
+            if part_result:
+                mime_type = part.get("mimeType", "")
+                if mime_type == "text/plain":
+                    text_parts.append(part_result)
+                elif mime_type == "text/html":
+                    html_parts.append(part_result)
+                else:
+                    body_parts.append(part_result)
+        
+        # Prefer text/plain over text/html if both exist
+        if text_parts:
+            body_parts.extend(text_parts)
+        elif html_parts:
+            body_parts.extend(html_parts)
+    else:
+        # Simple email without parts - extract from payload.body directly
+        if payload.get("body", {}).get("data"):
+            body = decode_body(payload["body"]["data"])
+            mime_type = payload.get("mimeType", "")
+            if mime_type == "text/html":
+                body = html_to_text(body)
+            if body and body not in seen_content:
+                body_parts.append(body)
+                seen_content.add(body)
+    
+    # Join all unique body parts
+    result = "\n".join(body_parts).strip()
+    return result
 
-    for part in payload.get("parts", []):
-        if part.get("mimeType") == "text/plain" and part.get("body", {}).get("data"):
-            body += "\n" + decode_body(part["body"]["data"])
-        elif part.get("mimeType") == "text/html" and part.get("body", {}).get("data"):
-            body += "\n" + html_to_text(decode_body(part["body"]["data"]))
-        elif part.get("parts"):
-            body += "\n" + extract_email_body(part)
-    return body.strip()
+
+def _extract_part_body(part: Dict[str, Any], seen_content: set) -> str:
+    """Extract body from a single part, avoiding duplicates."""
+    if not part:
+        return ""
+    
+    mime_type = part.get("mimeType", "")
+    
+    # If this part has nested parts, extract from them recursively
+    if part.get("parts"):
+        nested_parts = []
+        for nested_part in part.get("parts", []):
+            nested_body = _extract_part_body(nested_part, seen_content)
+            if nested_body:
+                nested_parts.append(nested_body)
+        return "\n".join(nested_parts)
+    
+    # Extract body data from this part
+    if part.get("body", {}).get("data"):
+        body = decode_body(part["body"]["data"])
+        
+        # Convert HTML to text if needed
+        if mime_type == "text/html":
+            body = html_to_text(body)
+        
+        # Only add if we haven't seen this exact content before
+        # Use a normalized version (strip whitespace) for comparison
+        normalized_body = body.strip() if body else ""
+        if normalized_body and normalized_body not in seen_content:
+            seen_content.add(normalized_body)
+            return normalized_body
+    
+    return ""
 
 
 def parse_email(message: Dict[str, Any]) -> Dict[str, Any]:
